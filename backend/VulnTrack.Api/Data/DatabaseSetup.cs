@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using VulnTrack.Api.Audit;
 
 namespace VulnTrack.Api.Data;
 
@@ -8,6 +9,8 @@ public static class DatabaseSetup
 {
     public static IServiceCollection AddDatabase(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddHttpContextAccessor();
+        services.AddScoped<IAuditActor, HttpAuditActor>();
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(configuration.GetConnectionString("Default")));
         services.AddHostedService<DatabaseMigrator>();
         return services;

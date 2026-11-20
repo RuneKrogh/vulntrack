@@ -10,7 +10,7 @@ RUN npm run build
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend
 WORKDIR /src
 COPY global.json ./
-COPY backend/Directory.Build.props backend/
+COPY backend/Directory.Build.props backend/.editorconfig backend/
 COPY backend/VulnTrack.Api/VulnTrack.Api.csproj backend/VulnTrack.Api/
 RUN dotnet restore backend/VulnTrack.Api/VulnTrack.Api.csproj
 COPY backend/VulnTrack.Api/ backend/VulnTrack.Api/

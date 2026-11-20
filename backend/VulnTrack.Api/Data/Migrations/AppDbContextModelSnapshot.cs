@@ -22,6 +22,41 @@ namespace VulnTrack.Api.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("VulnTrack.Api.Audit.AuditEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ActorId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ActorName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FindingId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("At");
+
+                    b.HasIndex("FindingId", "At");
+
+                    b.ToTable("AuditEntries");
+                });
+
             modelBuilder.Entity("VulnTrack.Api.Findings.Finding", b =>
                 {
                     b.Property<Guid>("Id")
@@ -74,6 +109,43 @@ namespace VulnTrack.Api.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Findings");
+                });
+
+            modelBuilder.Entity("VulnTrack.Api.Audit.AuditEntry", b =>
+                {
+                    b.HasOne("VulnTrack.Api.Findings.Finding", null)
+                        .WithMany()
+                        .HasForeignKey("FindingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsMany("VulnTrack.Api.Audit.AuditChange", "Changes", b1 =>
+                        {
+                            b1.Property<Guid>("AuditEntryId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<string>("Field")
+                                .IsRequired();
+
+                            b1.Property<string>("From");
+
+                            b1.Property<string>("To");
+
+                            b1.HasKey("AuditEntryId", "__synthesizedOrdinal");
+
+                            b1.ToTable("AuditEntries");
+
+                            b1
+                                .ToJson("Changes")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("AuditEntryId");
+                        });
+
+                    b.Navigation("Changes");
                 });
 #pragma warning restore 612, 618
         }
