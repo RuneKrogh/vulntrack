@@ -1,0 +1,3 @@
+# EF Core generates the migrations, so the code analyzers skip them like other generated code.
+[VulnTrack.Api/Data/Migrations/*.cs]
+generated_code = true
