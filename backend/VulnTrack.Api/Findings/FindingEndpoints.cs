@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using VulnTrack.Api.Auth;
 using VulnTrack.Api.Data;
@@ -20,15 +21,17 @@ public static class FindingEndpoints
             .RequireAuthorization(Policies.AssignFindings);
     }
 
-    private static async Task<List<FindingResponse>> List(AppDbContext db, CancellationToken cancellationToken) =>
+    private static async Task<List<FindingResponse>> List(ClaimsPrincipal user, AppDbContext db, CancellationToken cancellationToken) =>
         await db.Findings
+            .VisibleTo(user)
             .OrderByDescending(f => f.DiscoveredAt)
             .Select(f => FindingResponse.From(f))
             .ToListAsync(cancellationToken);
 
-    private static async Task<IResult> Get(Guid id, AppDbContext db, CancellationToken cancellationToken)
+    // A finding the user may not see gives 404 like a missing one, so the response doesn't reveal that it exists.
+    private static async Task<IResult> Get(Guid id, ClaimsPrincipal user, AppDbContext db, CancellationToken cancellationToken)
     {
-        var finding = await db.Findings.FindAsync([id], cancellationToken);
+        var finding = await db.Findings.VisibleTo(user).FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
         return finding is null ? Results.NotFound() : Results.Ok(FindingResponse.From(finding));
     }
 
