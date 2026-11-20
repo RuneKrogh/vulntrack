@@ -17,8 +17,6 @@ Open <http://localhost:8000>. Use `localhost` and not `127.0.0.1`, since the log
 
 Dependencies are installed and built inside containers, so nothing from npm or NuGet runs on your machine.
 
-The repository also has a dev container. Open it in GitHub Codespaces from VS Code on your desktop, so the ports are forwarded to `localhost`.
-
 ## Test users
 
 | Username | Password | Role |
