@@ -1,0 +1,9 @@
+{
+  "name": "VulnTrack",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "forwardPorts": [8000, 8080],
+  "postCreateCommand": "test -f .env || cp .env.example .env"
+}
