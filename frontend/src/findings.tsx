@@ -7,6 +7,7 @@ import {
   severities,
   type Assignee,
   type Finding,
+  type FindingFilter,
   type FindingStatus,
   type Severity,
 } from './api'
@@ -22,8 +23,84 @@ const statusLabels: Record<FindingStatus, string> = {
   AcceptedRisk: 'Accepted risk',
 }
 
-export function FindingList({ findings, onOpen }: { findings: Finding[]; onOpen: (finding: Finding) => void }) {
-  if (findings.length === 0) return <p>No findings yet.</p>
+type FilterBarProps = {
+  filter: FindingFilter
+  showOwner: boolean
+  onChange: (filter: FindingFilter) => void
+}
+
+export function FilterBar({ filter, showOwner, onChange }: FilterBarProps) {
+  const [search, setSearch] = useState(filter.q)
+  const [assignees, setAssignees] = useState<Assignee[]>([])
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!showOwner) return
+    getAssignees()
+      .then(setAssignees)
+      .catch((e: Error) => setError(e.message))
+  }, [showOwner])
+
+  // The search is sent once typing pauses, not on every key.
+  useEffect(() => {
+    if (search === filter.q) return
+    const timer = setTimeout(() => onChange({ ...filter, q: search }), 300)
+    return () => clearTimeout(timer)
+  }, [search, filter, onChange])
+
+  return (
+    <div className="filters">
+      <label className="search">
+        Search title or asset
+        <input type="search" value={search} maxLength={limits.title} onChange={(e) => setSearch(e.target.value)} />
+      </label>
+      <label>
+        Status
+        <select value={filter.status} onChange={(e) => onChange({ ...filter, status: e.target.value as FindingStatus | '' })}>
+          <option value="">All</option>
+          {Object.entries(statusLabels).map(([status, label]) => (
+            <option key={status} value={status}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Severity
+        <select value={filter.severity} onChange={(e) => onChange({ ...filter, severity: e.target.value as Severity | '' })}>
+          <option value="">All</option>
+          {severities.map((severity) => (
+            <option key={severity}>{severity}</option>
+          ))}
+        </select>
+      </label>
+      {showOwner && (
+        <label>
+          Owner
+          <select value={filter.assigneeId} onChange={(e) => onChange({ ...filter, assigneeId: e.target.value })}>
+            <option value="">All</option>
+            <option value="none">Unassigned</option>
+            {assignees.map((assignee) => (
+              <option key={assignee.id} value={assignee.id}>
+                {assignee.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {error && <p role="alert">{error}</p>}
+    </div>
+  )
+}
+
+type FindingListProps = {
+  findings: Finding[]
+  filtered: boolean
+  onOpen: (finding: Finding) => void
+}
+
+export function FindingList({ findings, filtered, onOpen }: FindingListProps) {
+  if (findings.length === 0) return <p>{filtered ? 'No findings match the filters.' : 'No findings yet.'}</p>
 
   return (
     <table>

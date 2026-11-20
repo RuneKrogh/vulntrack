@@ -109,6 +109,19 @@ tbody tr:hover {
   background: #1f2028;
 }
 
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.filters .search {
+  flex: 1;
+  min-width: 200px;
+}
+
 form {
   display: flex;
   flex-direction: column;

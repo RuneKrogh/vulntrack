@@ -16,6 +16,7 @@ public static class Policies
     public const string ViewFindings = nameof(ViewFindings);
     public const string CreateFindings = nameof(CreateFindings);
     public const string AssignFindings = nameof(AssignFindings);
+    public const string ViewAssignees = nameof(ViewAssignees);
 }
 
 public static class AuthorizationSetup
@@ -28,7 +29,9 @@ public static class AuthorizationSetup
             .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
             .AddPolicy(Policies.ViewFindings, policy => policy.RequireRole(Roles.Analyst, Roles.Developer, Roles.Pm, Roles.Auditor))
             .AddPolicy(Policies.CreateFindings, policy => policy.RequireRole(Roles.Analyst, Roles.Pm))
-            .AddPolicy(Policies.AssignFindings, policy => policy.RequireRole(Roles.Analyst, Roles.Pm));
+            .AddPolicy(Policies.AssignFindings, policy => policy.RequireRole(Roles.Analyst, Roles.Pm))
+            // For assigning and for the owner filter. Auditors already see every assignee's name on the findings.
+            .AddPolicy(Policies.ViewAssignees, policy => policy.RequireRole(Roles.Analyst, Roles.Pm, Roles.Auditor));
         return services;
     }
 }

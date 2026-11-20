@@ -25,6 +25,17 @@ export type Finding = {
 
 export type NewFinding = Pick<Finding, 'title' | 'description' | 'affectedAsset' | 'severity' | 'discoveredAt'>
 
+// Empty values mean no filter and are left out of the request.
+export type FindingFilter = {
+  q: string
+  status: FindingStatus | ''
+  severity: Severity | ''
+  // A developer's id, or "none" for unassigned findings.
+  assigneeId: string
+}
+
+export const noFilter: FindingFilter = { q: '', status: '', severity: '', assigneeId: '' }
+
 export type NewReport = Pick<Finding, 'title' | 'description' | 'affectedAsset' | 'severity'> & { reporterEmail: string }
 
 export type Assignee = {
@@ -64,8 +75,13 @@ export async function logout(): Promise<void> {
   window.location.assign(url)
 }
 
-export async function getFindings(): Promise<Finding[]> {
-  const response = await request('/api/findings')
+export async function getFindings(filter: FindingFilter, signal: AbortSignal): Promise<Finding[]> {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(filter)) {
+    if (value) params.set(key, value)
+  }
+  const query = params.toString()
+  const response = await request(query ? `/api/findings?${query}` : '/api/findings', { signal })
   if (!response.ok) throw await failure(response, 'Loading findings')
   return response.json()
 }
