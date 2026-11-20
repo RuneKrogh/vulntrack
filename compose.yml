@@ -26,14 +26,35 @@ services:
       timeout: 5s
       retries: 30
 
+  # No published port, so only the app can reach the database.
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: vulntrack
+      POSTGRES_USER: vulntrack
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "vulntrack", "-d", "vulntrack"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
   app:
     build: .
     depends_on:
       keycloak:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
     environment:
+      ConnectionStrings__Default: Host=postgres;Database=vulntrack;Username=vulntrack;Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       Oidc__ClientSecret: ${OIDC_CLIENT_SECRET:?set OIDC_CLIENT_SECRET in .env}
       Oidc__MetadataAddress: http://keycloak:8080/realms/vulntrack/.well-known/openid-configuration
       Oidc__RequireHttpsMetadata: "false"
     ports:
       - 127.0.0.1:8000:8080
+
+volumes:
+  postgres-data:
