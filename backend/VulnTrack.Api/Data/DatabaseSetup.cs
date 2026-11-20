@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using VulnTrack.Api.Audit;
+using VulnTrack.Api.Findings;
+using VulnTrack.Api.Security;
 
 namespace VulnTrack.Api.Data;
 
@@ -11,7 +13,18 @@ public static class DatabaseSetup
     {
         services.AddHttpContextAccessor();
         services.AddScoped<IAuditActor, HttpAuditActor>();
-        services.AddDbContext<AppDbContext>(options => options.UseNpgsql(configuration.GetConnectionString("Default")));
+
+        // Without a valid key the app doesn't start, so findings are never stored without encryption.
+        services.AddOptions<EncryptionOptions>()
+            .Bind(configuration.GetSection("Encryption"))
+            .Validate(options => FieldEncryption.IsValidKey(options.Key), FieldEncryption.InvalidKeyMessage)
+            .ValidateOnStart();
+        services.AddSingleton<FieldEncryption>();
+        services.AddSingleton<FindingDecryption>();
+
+        services.AddDbContext<AppDbContext>((provider, options) => options
+            .UseNpgsql(configuration.GetConnectionString("Default"))
+            .AddInterceptors(provider.GetRequiredService<FindingDecryption>()));
         services.AddHostedService<DatabaseMigrator>();
         return services;
     }

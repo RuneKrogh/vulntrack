@@ -17,15 +17,25 @@ public sealed class Finding
 
     // Random ids, so findings can't be enumerated by counting.
     public Guid Id { get; init; } = Guid.NewGuid();
+    // Title and asset are stored in plain text, so they can be searched and shown in the audit trail.
     public required string Title { get; set; }
-    public required string Description { get; set; }
     public required string AffectedAsset { get; set; }
     public Severity Severity { get; set; }
     public DateOnly DiscoveredAt { get; set; }
     public FindingStatus Status { get; set; } = FindingStatus.New;
 
+    // The description and the reporter's email are only stored encrypted, see FindingEncryption.
+    public required string Description { get; set; }
+
     // Only set when the finding comes from the public report form.
-    public string? ReporterEmail { get; init; }
+    public string? ReporterEmail { get; internal set; }
+
+    public byte[] EncryptedDataKey { get; internal set; } = [];
+    public byte[] EncryptedDescription { get; internal set; } = [];
+    public byte[]? EncryptedReporterEmail { get; internal set; }
+
+    // The description as it was last encrypted, so it's only encrypted again when it changed.
+    internal string? StoredDescription { get; set; }
 
     // The Keycloak user id of the developer who has to fix it. The name is stored too,
     // so lists can show it without asking Keycloak.
