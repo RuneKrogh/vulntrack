@@ -18,7 +18,7 @@ public static class FindingEndpoints
         findings.MapPut("/{id:guid}/assignment", Assign).RequireAuthorization(Policies.AssignFindings);
 
         app.MapGet("/api/assignees", (IUserDirectory users, CancellationToken cancellationToken) => users.GetDevelopersAsync(cancellationToken))
-            .RequireAuthorization(Policies.AssignFindings);
+            .RequireAuthorization(Policies.ViewAssignees);
     }
 
     private static async Task<List<FindingResponse>> List(

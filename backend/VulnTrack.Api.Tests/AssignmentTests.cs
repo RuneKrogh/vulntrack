@@ -124,9 +124,10 @@ public sealed class AssignmentTests(PostgresFactory factory) : IClassFixture<Pos
     [Theory]
     [InlineData("analyst", HttpStatusCode.OK)]
     [InlineData("pm", HttpStatusCode.OK)]
+    [InlineData("auditor", HttpStatusCode.OK)]
     [InlineData("developer", HttpStatusCode.Forbidden)]
-    [InlineData("auditor", HttpStatusCode.Forbidden)]
-    public async Task Assignees_OnlyForAnalystAndPm(string role, HttpStatusCode expected)
+    [InlineData("", HttpStatusCode.Forbidden)]
+    public async Task Assignees_OnlyForAnalystPmAndAuditor(string role, HttpStatusCode expected)
     {
         var client = factory.CreateClientAs("alice", role);
 

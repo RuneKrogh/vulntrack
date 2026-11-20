@@ -1,26 +1,38 @@
 import { useEffect, useState } from 'react'
-import { getCurrentUser, getFindings, logout, type CurrentUser, type Finding } from './api'
-import { FindingDetails, FindingForm, FindingList } from './findings'
+import { getCurrentUser, getFindings, logout, noFilter, type CurrentUser, type Finding, type FindingFilter } from './api'
+import { FilterBar, FindingDetails, FindingForm, FindingList } from './findings'
 
 type View = { name: 'list' } | { name: 'details'; finding: Finding } | { name: 'new' }
 
 export default function App() {
   const [user, setUser] = useState<CurrentUser | null | undefined>(undefined)
   const [findings, setFindings] = useState<Finding[]>([])
+  const [filter, setFilter] = useState<FindingFilter>(noFilter)
   const [view, setView] = useState<View>({ name: 'list' })
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     getCurrentUser()
-      .then(async (current) => {
-        setUser(current)
-        if (current) setFindings(await getFindings())
-      })
+      .then(setUser)
       .catch((e: Error) => setError(e.message))
   }, [])
 
+  // A new filter cancels the request for the previous one, so a slow old response can't replace a newer list.
+  useEffect(() => {
+    if (!user) return
+    const controller = new AbortController()
+    getFindings(filter, controller.signal)
+      .then(setFindings)
+      .catch((e: Error) => {
+        if (!controller.signal.aborted) setError(e.message)
+      })
+    return () => controller.abort()
+  }, [user, filter])
+
   // Only hides buttons and forms. The backend decides who may actually create and assign findings.
   const canManage = user?.roles.some((role) => role === 'analyst' || role === 'pm') ?? false
+  // Developers only see their own findings, so filtering by owner means nothing to them.
+  const canFilterByOwner = canManage || (user?.roles.includes('auditor') ?? false)
 
   function replaceFinding(changed: Finding) {
     setFindings(findings.map((finding) => (finding.id === changed.id ? changed : finding)))
@@ -66,7 +78,12 @@ export default function App() {
                 </button>
               )}
             </div>
-            <FindingList findings={findings} onOpen={(finding) => setView({ name: 'details', finding })} />
+            <FilterBar filter={filter} showOwner={canFilterByOwner} onChange={setFilter} />
+            <FindingList
+              findings={findings}
+              filtered={Object.values(filter).some(Boolean)}
+              onOpen={(finding) => setView({ name: 'details', finding })}
+            />
           </>
         )}
         {user && view.name === 'details' && (
