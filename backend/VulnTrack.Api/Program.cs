@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using VulnTrack.Api.Auth;
+using VulnTrack.Api.Data;
 using VulnTrack.Api.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOidcAuthentication(builder.Configuration);
+builder.Services.AddDatabase(builder.Configuration);
 
 // Every endpoint requires a signed-in user unless it explicitly allows anonymous access.
 builder.Services.AddAuthorizationBuilder()

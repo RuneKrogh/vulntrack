@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using VulnTrack.Api.Data;
 
 namespace VulnTrack.Api.Tests;
 
@@ -18,6 +19,9 @@ public sealed class VulnTrackFactory : WebApplicationFactory<Program>
         builder.UseSetting("Oidc:RequireHttpsMetadata", "false");
         builder.ConfigureServices(services =>
         {
+            // These tests don't use the database, so don't try to migrate one at startup.
+            services.Remove(services.Single(s => s.ImplementationType == typeof(DatabaseMigrator)));
+
             services.AddAuthentication()
                 .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
             services.PostConfigure<AuthenticationOptions>(options =>
