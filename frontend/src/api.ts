@@ -16,9 +16,17 @@ export type Finding = {
   severity: Severity
   discoveredAt: string
   status: FindingStatus
+  assigneeId: string | null
+  assigneeName: string | null
+  dueDate: string | null
 }
 
-export type NewFinding = Omit<Finding, 'id' | 'status'>
+export type NewFinding = Pick<Finding, 'title' | 'description' | 'affectedAsset' | 'severity' | 'discoveredAt'>
+
+export type Assignee = {
+  id: string
+  name: string
+}
 
 // Same limits as the backend, so the form stops input the API would reject anyway.
 export const limits = { title: 256, description: 8192, affectedAsset: 256 }
@@ -65,5 +73,21 @@ export async function createFinding(finding: NewFinding): Promise<Finding> {
     body: JSON.stringify(finding),
   })
   if (!response.ok) throw await failure(response, 'Saving the finding')
+  return response.json()
+}
+
+export async function getAssignees(): Promise<Assignee[]> {
+  const response = await request('/api/assignees')
+  if (!response.ok) throw await failure(response, 'Loading developers')
+  return response.json()
+}
+
+export async function assignFinding(id: string, assigneeId: string, dueDate: string): Promise<Finding> {
+  const response = await request(`/api/findings/${encodeURIComponent(id)}/assignment`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ assigneeId, dueDate }),
+  })
+  if (!response.ok) throw await failure(response, 'Assigning the finding')
   return response.json()
 }
