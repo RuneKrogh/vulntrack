@@ -42,6 +42,9 @@ public sealed class KeycloakUserDirectory(
             ["grant_type"] = "client_credentials",
             ["client_id"] = options.ClientId!,
             ["client_secret"] = options.ClientSecret!,
+            // Since Keycloak 26.8.2 the Admin API only accepts tokens with this scope. It is optional on
+            // the client, so only this token asks for it and users' login tokens don't get it.
+            ["scope"] = "kc-admin-api",
         }), cancellationToken);
         response.EnsureSuccessStatusCode();
         var token = await response.Content.ReadFromJsonAsync<TokenResponse>(cancellationToken);

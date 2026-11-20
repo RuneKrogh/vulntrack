@@ -29,6 +29,7 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true,
       "fullScopeAllowed": false,
+      "optionalClientScopes": ["kc-admin-api"],
       "redirectUris": ["http://localhost:8000/signin-oidc"],
       "attributes": {
         "pkce.code.challenge.method": "S256",
