@@ -1,16 +1,18 @@
-using Microsoft.AspNetCore.Authorization;
+using System.Text.Json.Serialization;
 using VulnTrack.Api.Auth;
 using VulnTrack.Api.Data;
+using VulnTrack.Api.Findings;
 using VulnTrack.Api.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOidcAuthentication(builder.Configuration);
+builder.Services.AddRolePolicies();
 builder.Services.AddDatabase(builder.Configuration);
-
-// Every endpoint requires a signed-in user unless it explicitly allows anonymous access.
-builder.Services.AddAuthorizationBuilder()
-    .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
+builder.Services.AddValidation();
+// Enums are sent as names. Numbers are rejected, so values outside the enum can't slip through.
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false)));
 
 var app = builder.Build();
 
@@ -22,6 +24,7 @@ app.UseAuthorization();
 
 app.MapAuthEndpoints();
 app.MapGet("/api/me", CurrentUser.Get);
+app.MapFindingEndpoints();
 
 // Unknown API routes return 404 instead of falling through to the SPA.
 app.Map("/api/{**path}", () => Results.NotFound());
