@@ -29,6 +29,7 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true,
       "fullScopeAllowed": false,
+      "defaultClientScopes": ["basic", "profile", "email", "roles", "web-origins", "acr"],
       "optionalClientScopes": ["kc-admin-api"],
       "redirectUris": ["http://localhost:8000/signin-oidc"],
       "attributes": {
