@@ -92,6 +92,35 @@ public sealed class AssignmentTests(PostgresFactory factory) : IClassFixture<Pos
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Developer_OnlySeesFindingsAssignedToThem()
+    {
+        var assigned = await CreateFindingAsync();
+        var other = await CreateFindingAsync();
+        var analyst = factory.CreateClientAs("alice", "analyst");
+        await analyst.PutAsJsonAsync($"/api/findings/{assigned}/assignment", new { assigneeId = FakeUserDirectory.Developer.Id, dueDate = Tomorrow }, Ct);
+        var developer = factory.CreateClientAs(FakeUserDirectory.Developer.Id, "developer");
+
+        var list = await developer.GetFromJsonAsync<List<FindingResponse>>("/api/findings", Json, Ct);
+
+        Assert.Contains(list!, f => f.Id == assigned);
+        Assert.DoesNotContain(list!, f => f.Id == other);
+        Assert.Equal(HttpStatusCode.OK, (await developer.GetAsync($"/api/findings/{assigned}", Ct)).StatusCode);
+        // 404 and not 403, so a developer can't tell whether a finding exists.
+        Assert.Equal(HttpStatusCode.NotFound, (await developer.GetAsync($"/api/findings/{other}", Ct)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Developer_WithNoAssignments_SeesNothing()
+    {
+        await CreateFindingAsync();
+        var developer = factory.CreateClientAs("someone-else", "developer");
+
+        var list = await developer.GetFromJsonAsync<List<FindingResponse>>("/api/findings", Json, Ct);
+
+        Assert.Empty(list!);
+    }
+
     [Theory]
     [InlineData("analyst", HttpStatusCode.OK)]
     [InlineData("pm", HttpStatusCode.OK)]

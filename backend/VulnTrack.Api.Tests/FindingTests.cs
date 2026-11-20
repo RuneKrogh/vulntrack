@@ -108,10 +108,9 @@ public sealed class FindingTests(PostgresFactory factory) : IClassFixture<Postgr
 
     [Theory]
     [InlineData("analyst")]
-    [InlineData("developer")]
     [InlineData("pm")]
     [InlineData("auditor")]
-    public async Task ListAndGet_AsAnyRole_ReturnsFindings(string role)
+    public async Task ListAndGet_AsAnalystPmOrAuditor_ReturnsAllFindings(string role)
     {
         var creator = factory.CreateClientAs("alice", "analyst");
         var created = await (await creator.PostAsJsonAsync("/api/findings", ValidFinding($"Visible to {role}"), Ct))

@@ -94,7 +94,8 @@ public sealed class TestAuthHandler(
         }
 
         string roles = Request.Headers[RolesHeader].ToString();
-        var claims = new List<Claim> { new("preferred_username", username) };
+        // The username doubles as the Keycloak user id (sub).
+        var claims = new List<Claim> { new("sub", username), new("preferred_username", username) };
         claims.AddRange(roles.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(role => new Claim("roles", role)));
 
         var identity = new ClaimsIdentity(claims, SchemeName, "preferred_username", "roles");
