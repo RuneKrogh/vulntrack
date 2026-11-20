@@ -19,6 +19,7 @@ public static class Policies
     public const string ViewAssignees = nameof(ViewAssignees);
     public const string UpdateStatus = nameof(UpdateStatus);
     public const string EditFindings = nameof(EditFindings);
+    public const string ViewAudit = nameof(ViewAudit);
 }
 
 public static class AuthorizationSetup
@@ -37,7 +38,9 @@ public static class AuthorizationSetup
             // Which statuses each role may set is checked per request, see FindingAccess.CanSetStatus.
             .AddPolicy(Policies.UpdateStatus, policy => policy.RequireRole(Roles.Analyst, Roles.Pm, Roles.Developer))
             // Developers may not change the severity, see FindingAccess.CanChangeSeverity.
-            .AddPolicy(Policies.EditFindings, policy => policy.RequireRole(Roles.Analyst, Roles.Pm, Roles.Developer));
+            .AddPolicy(Policies.EditFindings, policy => policy.RequireRole(Roles.Analyst, Roles.Pm, Roles.Developer))
+            // AUDIT-02: the audit trail is for oversight, so only PMs and auditors read it.
+            .AddPolicy(Policies.ViewAudit, policy => policy.RequireRole(Roles.Pm, Roles.Auditor));
         return services;
     }
 }

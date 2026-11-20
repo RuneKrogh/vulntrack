@@ -138,6 +138,17 @@ tbody tr:hover {
   color: #ff8787;
 }
 
+.audit {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+
+.audit li {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #2e303a;
+}
+
 .filters {
   display: flex;
   flex-wrap: wrap;

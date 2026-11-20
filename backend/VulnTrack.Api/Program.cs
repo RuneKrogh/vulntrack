@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using VulnTrack.Api.Audit;
 using VulnTrack.Api.Auth;
 using VulnTrack.Api.Data;
 using VulnTrack.Api.Findings;
@@ -31,6 +32,7 @@ app.MapGet("/api/me", CurrentUser.Get);
 app.MapFindingEndpoints();
 app.MapReportEndpoints();
 app.MapDashboardEndpoints();
+app.MapAuditEndpoints();
 
 // Unknown API routes return 404 instead of falling through to the SPA.
 app.Map("/api/{**path}", () => Results.NotFound());

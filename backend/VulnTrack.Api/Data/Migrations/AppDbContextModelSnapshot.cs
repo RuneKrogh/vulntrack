@@ -48,9 +48,18 @@ namespace VulnTrack.Api.Data.Migrations
                     b.Property<Guid>("FindingId")
                         .HasColumnType("uuid");
 
+                    b.Property<long>("Sequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Sequence"));
+
                     b.HasKey("Id");
 
                     b.HasIndex("At");
+
+                    b.HasIndex("Sequence")
+                        .IsUnique();
 
                     b.HasIndex("FindingId", "At");
 

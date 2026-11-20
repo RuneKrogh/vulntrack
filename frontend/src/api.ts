@@ -44,6 +44,23 @@ export type Dashboard = {
   overdue: number
 }
 
+// From and To are null when a field was empty, or when its value isn't copied into the log (the description).
+export type AuditChange = { field: string; from: string | null; to: string | null }
+
+export type AuditEntry = {
+  sequence: number
+  findingId: string
+  findingTitle: string
+  actorId: string | null
+  actorName: string
+  action: 'Created' | 'Updated'
+  changes: AuditChange[]
+  at: string
+}
+
+// Next is passed as "before" to get the following page, and is null on the last page.
+export type AuditPage = { entries: AuditEntry[]; next: number | null }
+
 // Empty values mean no filter and are left out of the request.
 export type FindingFilter = {
   q: string
@@ -118,6 +135,16 @@ export async function createFinding(finding: NewFinding): Promise<Finding> {
 export async function getDashboard(): Promise<Dashboard> {
   const response = await request('/api/dashboard')
   if (!response.ok) throw await failure(response, 'Loading the dashboard')
+  return response.json()
+}
+
+export async function getAudit(findingId: string | undefined, before: number | null): Promise<AuditPage> {
+  const params = new URLSearchParams()
+  if (findingId) params.set('findingId', findingId)
+  if (before !== null) params.set('before', String(before))
+  const query = params.toString()
+  const response = await request(query ? `/api/audit?${query}` : '/api/audit')
+  if (!response.ok) throw await failure(response, 'Loading the history')
   return response.json()
 }
 
