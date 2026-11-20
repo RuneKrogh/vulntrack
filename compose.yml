@@ -52,6 +52,7 @@ services:
       ConnectionStrings__Default: Host=postgres;Database=vulntrack;Username=vulntrack;Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       Oidc__ClientSecret: ${OIDC_CLIENT_SECRET:?set OIDC_CLIENT_SECRET in .env}
       Oidc__MetadataAddress: http://keycloak:8080/realms/vulntrack/.well-known/openid-configuration
+      Keycloak__AdminUrl: http://keycloak:8080/admin/realms/vulntrack
       Oidc__RequireHttpsMetadata: "false"
     ports:
       - 127.0.0.1:8000:8080

@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 using VulnTrack.Api.Auth;
 using VulnTrack.Api.Data;
+using VulnTrack.Api.Users;
 
 namespace VulnTrack.Api.Findings;
 
@@ -13,6 +14,10 @@ public static class FindingEndpoints
         findings.MapGet("/", List).RequireAuthorization(Policies.ViewFindings);
         findings.MapGet("/{id:guid}", Get).RequireAuthorization(Policies.ViewFindings);
         findings.MapPost("/", Create).RequireAuthorization(Policies.CreateFindings);
+        findings.MapPut("/{id:guid}/assignment", Assign).RequireAuthorization(Policies.AssignFindings);
+
+        app.MapGet("/api/assignees", (IUserDirectory users, CancellationToken cancellationToken) => users.GetDevelopersAsync(cancellationToken))
+            .RequireAuthorization(Policies.AssignFindings);
     }
 
     private static async Task<List<FindingResponse>> List(AppDbContext db, CancellationToken cancellationToken) =>
@@ -42,6 +47,46 @@ public static class FindingEndpoints
         await db.SaveChangesAsync(cancellationToken);
         return Results.Created($"/api/findings/{finding.Id}", FindingResponse.From(finding));
     }
+
+    private static async Task<IResult> Assign(
+        Guid id,
+        AssignFindingRequest request,
+        AppDbContext db,
+        IUserDirectory users,
+        CancellationToken cancellationToken)
+    {
+        var finding = await db.Findings.FindAsync([id], cancellationToken);
+        if (finding is null) return Results.NotFound();
+
+        // Only developers that exist in Keycloak can be assigned, not any id the client sends.
+        var assignee = (await users.GetDevelopersAsync(cancellationToken)).SingleOrDefault(user => user.Id == request.AssigneeId);
+        if (assignee is null)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                [nameof(request.AssigneeId)] = ["The assignee must be a developer."],
+            });
+        }
+
+        finding.AssigneeId = assignee.Id;
+        finding.AssigneeName = assignee.Name;
+        finding.DueDate = request.DueDate;
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.Ok(FindingResponse.From(finding));
+    }
+}
+
+public sealed record AssignFindingRequest(
+    [property: Required, MaxLength(Finding.AssigneeIdMaxLength)] string? AssigneeId,
+    [property: Required] DateOnly? DueDate) : IValidatableObject
+{
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (DueDate < DateOnly.FromDateTime(DateTime.UtcNow))
+        {
+            yield return new ValidationResult("The due date can't be in the past.", [nameof(DueDate)]);
+        }
+    }
 }
 
 public sealed record CreateFindingRequest(
@@ -67,7 +112,10 @@ public sealed record FindingResponse(
     string AffectedAsset,
     Severity Severity,
     DateOnly DiscoveredAt,
-    FindingStatus Status)
+    FindingStatus Status,
+    string? AssigneeId,
+    string? AssigneeName,
+    DateOnly? DueDate)
 {
     public static FindingResponse From(Finding finding) => new(
         finding.Id,
@@ -76,5 +124,8 @@ public sealed record FindingResponse(
         finding.AffectedAsset,
         finding.Severity,
         finding.DiscoveredAt,
-        finding.Status);
+        finding.Status,
+        finding.AssigneeId,
+        finding.AssigneeName,
+        finding.DueDate);
 }

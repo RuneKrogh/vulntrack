@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Testcontainers.PostgreSql;
 using VulnTrack.Api.Data;
 using VulnTrack.Api.Security;
+using VulnTrack.Api.Users;
 
 namespace VulnTrack.Api.Tests;
 
@@ -29,6 +30,7 @@ public class VulnTrackFactory : WebApplicationFactory<Program>
                 options.DefaultScheme = TestAuthHandler.SchemeName;
                 options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
             });
+            services.AddSingleton<IUserDirectory, FakeUserDirectory>();
         });
         ConfigureDatabase(builder);
     }
@@ -63,6 +65,15 @@ public sealed class PostgresFactory : VulnTrackFactory, IAsyncLifetime
         await base.DisposeAsync();
         await _postgres.DisposeAsync();
     }
+}
+
+// Stands in for Keycloak's user list.
+public sealed class FakeUserDirectory : IUserDirectory
+{
+    public static readonly AppUser Developer = new("dev-1", "Dana Developer");
+
+    public Task<IReadOnlyList<AppUser>> GetDevelopersAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<AppUser>>([Developer]);
 }
 
 public sealed class TestAuthHandler(
