@@ -15,6 +15,7 @@ public sealed class VulnTrackFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Oidc:ClientSecret", "test-secret");
+        builder.UseSetting("Oidc:RequireHttpsMetadata", "false");
         builder.ConfigureServices(services =>
         {
             services.AddAuthentication()

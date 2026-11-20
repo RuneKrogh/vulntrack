@@ -1,20 +1,9 @@
 {
   "name": "VulnTrack",
-  "image": "mcr.microsoft.com/devcontainers/dotnet:10.0",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "features": {
-    "ghcr.io/devcontainers/features/node:1": { "version": "24" },
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
-  "forwardPorts": [8000, 8080, 5173],
-  "portsAttributes": {
-    "8000": { "label": "VulnTrack" },
-    "8080": { "label": "Keycloak" },
-    "5173": { "label": "Vite dev server" }
-  },
-  "postCreateCommand": "test -f .env || cp .env.example .env",
-  "customizations": {
-    "vscode": {
-      "extensions": ["ms-dotnettools.csdevkit", "oxc.oxc-vscode"]
-    }
-  }
+  "forwardPorts": [8000, 8080],
+  "postCreateCommand": "test -f .env || cp .env.example .env"
 }

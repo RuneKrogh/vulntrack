@@ -12,7 +12,6 @@ public static class SecurityMiddleware
                 "default-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
             headers.XContentTypeOptions = "nosniff";
             headers["Referrer-Policy"] = "no-referrer";
-            headers["Cross-Origin-Opener-Policy"] = "same-origin";
             await next(context);
         });
 
