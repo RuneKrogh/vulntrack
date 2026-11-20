@@ -4,7 +4,6 @@
 **/dist/
 .git/
 .github/
-.devcontainer/
 .env
 keycloak/
 *.md
