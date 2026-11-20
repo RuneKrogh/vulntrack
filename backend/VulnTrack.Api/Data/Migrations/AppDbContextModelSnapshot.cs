@@ -85,20 +85,22 @@ namespace VulnTrack.Api.Data.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(8192)
-                        .HasColumnType("character varying(8192)");
-
                     b.Property<DateOnly>("DiscoveredAt")
                         .HasColumnType("date");
 
                     b.Property<DateOnly?>("DueDate")
                         .HasColumnType("date");
 
-                    b.Property<string>("ReporterEmail")
-                        .HasMaxLength(254)
-                        .HasColumnType("character varying(254)");
+                    b.Property<byte[]>("EncryptedDataKey")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<byte[]>("EncryptedDescription")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<byte[]>("EncryptedReporterEmail")
+                        .HasColumnType("bytea");
 
                     b.Property<string>("Severity")
                         .IsRequired()
