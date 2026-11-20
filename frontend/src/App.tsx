@@ -1,5 +1,16 @@
 import { useEffect, useState } from 'react'
-import { getCurrentUser, getFindings, logout, noFilter, type CurrentUser, type Finding, type FindingFilter } from './api'
+import {
+  getCurrentUser,
+  getDashboard,
+  getFindings,
+  logout,
+  noFilter,
+  type CurrentUser,
+  type Dashboard,
+  type Finding,
+  type FindingFilter,
+} from './api'
+import { DashboardSummary } from './dashboard'
 import { FilterBar, FindingDetails, FindingForm, FindingList } from './findings'
 
 type View = { name: 'list' } | { name: 'details'; finding: Finding } | { name: 'new' }
@@ -8,8 +19,10 @@ export default function App() {
   const [user, setUser] = useState<CurrentUser | null | undefined>(undefined)
   const [findings, setFindings] = useState<Finding[]>([])
   const [filter, setFilter] = useState<FindingFilter>(noFilter)
+  const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [view, setView] = useState<View>({ name: 'list' })
   const [error, setError] = useState<string | null>(null)
+  const showingList = view.name === 'list'
 
   useEffect(() => {
     getCurrentUser()
@@ -28,6 +41,14 @@ export default function App() {
       })
     return () => controller.abort()
   }, [user, filter])
+
+  // Loaded again whenever the list is shown, so it includes findings created or assigned in the meantime.
+  useEffect(() => {
+    if (!user || !showingList) return
+    getDashboard()
+      .then(setDashboard)
+      .catch((e: Error) => setError(e.message))
+  }, [user, showingList])
 
   // Only hides buttons and forms. The backend decides who may actually create and assign findings.
   const canManage = user?.roles.some((role) => role === 'analyst' || role === 'pm') ?? false
@@ -68,8 +89,9 @@ export default function App() {
             </p>
           </>
         )}
-        {user && view.name === 'list' && (
+        {user && showingList && (
           <>
+            {dashboard && <DashboardSummary dashboard={dashboard} />}
             <div className="toolbar">
               <h2>Findings</h2>
               {canManage && (

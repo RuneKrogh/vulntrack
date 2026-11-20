@@ -30,6 +30,7 @@ app.MapAuthEndpoints();
 app.MapGet("/api/me", CurrentUser.Get);
 app.MapFindingEndpoints();
 app.MapReportEndpoints();
+app.MapDashboardEndpoints();
 
 // Unknown API routes return 404 instead of falling through to the SPA.
 app.Map("/api/{**path}", () => Results.NotFound());

@@ -5,6 +5,7 @@ import {
   getAssignees,
   limits,
   severities,
+  statusLabels,
   type Assignee,
   type Finding,
   type FindingFilter,
@@ -14,14 +15,6 @@ import {
 
 // The backend compares dates against the UTC date, so the forms do the same.
 const todayUtc = () => new Date().toISOString().slice(0, 10)
-
-const statusLabels: Record<FindingStatus, string> = {
-  New: 'New',
-  Triaged: 'Triaged',
-  InProgress: 'In progress',
-  Remediated: 'Remediated',
-  AcceptedRisk: 'Accepted risk',
-}
 
 type FilterBarProps = {
   filter: FindingFilter
