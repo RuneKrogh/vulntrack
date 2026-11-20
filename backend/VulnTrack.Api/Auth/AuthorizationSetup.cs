@@ -18,6 +18,7 @@ public static class Policies
     public const string AssignFindings = nameof(AssignFindings);
     public const string ViewAssignees = nameof(ViewAssignees);
     public const string UpdateStatus = nameof(UpdateStatus);
+    public const string EditFindings = nameof(EditFindings);
 }
 
 public static class AuthorizationSetup
@@ -34,7 +35,9 @@ public static class AuthorizationSetup
             // For assigning and for the owner filter. Auditors already see every assignee's name on the findings.
             .AddPolicy(Policies.ViewAssignees, policy => policy.RequireRole(Roles.Analyst, Roles.Pm, Roles.Auditor))
             // Which statuses each role may set is checked per request, see FindingAccess.CanSetStatus.
-            .AddPolicy(Policies.UpdateStatus, policy => policy.RequireRole(Roles.Analyst, Roles.Pm, Roles.Developer));
+            .AddPolicy(Policies.UpdateStatus, policy => policy.RequireRole(Roles.Analyst, Roles.Pm, Roles.Developer))
+            // Developers may not change the severity, see FindingAccess.CanChangeSeverity.
+            .AddPolicy(Policies.EditFindings, policy => policy.RequireRole(Roles.Analyst, Roles.Pm, Roles.Developer));
         return services;
     }
 }

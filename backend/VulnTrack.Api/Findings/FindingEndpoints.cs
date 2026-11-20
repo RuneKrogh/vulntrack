@@ -15,6 +15,7 @@ public static class FindingEndpoints
         findings.MapGet("/", List).RequireAuthorization(Policies.ViewFindings);
         findings.MapGet("/{id:guid}", Get).RequireAuthorization(Policies.ViewFindings);
         findings.MapPost("/", Create).RequireAuthorization(Policies.CreateFindings);
+        findings.MapPut("/{id:guid}", Edit).RequireAuthorization(Policies.EditFindings);
         findings.MapPut("/{id:guid}/assignment", Assign).RequireAuthorization(Policies.AssignFindings);
         findings.MapPut("/{id:guid}/status", UpdateStatus).RequireAuthorization(Policies.UpdateStatus);
 
@@ -56,6 +57,29 @@ public static class FindingEndpoints
         db.Findings.Add(finding);
         await db.SaveChangesAsync(cancellationToken);
         return Results.Created($"/api/findings/{finding.Id}", FindingResponse.From(finding, user.CanSeeReporterEmail()));
+    }
+
+    // Only the details can be edited here. Status, assignment, discovery date and reporter email have their
+    // own rules or never change, so they aren't part of the request.
+    private static async Task<IResult> Edit(
+        Guid id,
+        EditFindingRequest request,
+        ClaimsPrincipal user,
+        AppDbContext db,
+        CancellationToken cancellationToken)
+    {
+        var finding = await db.Findings.VisibleTo(user).FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
+        if (finding is null) return Results.NotFound();
+
+        var severity = request.Severity!.Value;
+        if (severity != finding.Severity && !user.CanChangeSeverity()) return Results.Forbid();
+
+        finding.Title = request.Title!;
+        finding.Description = request.Description!;
+        finding.AffectedAsset = request.AffectedAsset!;
+        finding.Severity = severity;
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.Ok(FindingResponse.From(finding, user.CanSeeReporterEmail()));
     }
 
     private static async Task<IResult> Assign(
@@ -105,6 +129,12 @@ public static class FindingEndpoints
         return Results.Ok(FindingResponse.From(finding, user.CanSeeReporterEmail()));
     }
 }
+
+public sealed record EditFindingRequest(
+    [property: Required, MaxLength(Finding.TitleMaxLength)] string? Title,
+    [property: Required, MaxLength(Finding.DescriptionMaxLength)] string? Description,
+    [property: Required, MaxLength(Finding.AffectedAssetMaxLength)] string? AffectedAsset,
+    [property: Required, EnumDataType(typeof(Severity))] Severity? Severity);
 
 public sealed record UpdateStatusRequest([property: Required, EnumDataType(typeof(FindingStatus))] FindingStatus? Status);
 

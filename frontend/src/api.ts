@@ -31,7 +31,10 @@ export type Finding = {
   reporterEmail: string | null
 }
 
-export type NewFinding = Pick<Finding, 'title' | 'description' | 'affectedAsset' | 'severity' | 'discoveredAt'>
+// The details that can be edited after a finding is created.
+export type EditableFields = Pick<Finding, 'title' | 'description' | 'affectedAsset' | 'severity'>
+
+export type NewFinding = EditableFields & Pick<Finding, 'discoveredAt'>
 
 // Counts over the findings the user may see. Open means not remediated and not accepted.
 export type Dashboard = {
@@ -131,6 +134,17 @@ export async function submitReport(report: NewReport): Promise<string> {
   if (!response.ok) throw await failure(response, 'Sending the report')
   const { reference } = (await response.json()) as { reference: string }
   return reference
+}
+
+export async function editFinding(id: string, fields: EditableFields): Promise<Finding> {
+  const response = await request(`/api/findings/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(fields),
+  })
+  if (response.status === 403) throw new Error('You are not allowed to change the severity.')
+  if (!response.ok) throw await failure(response, 'Saving the finding')
+  return response.json()
 }
 
 export async function updateStatus(id: string, status: FindingStatus): Promise<Finding> {

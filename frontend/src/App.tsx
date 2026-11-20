@@ -56,10 +56,11 @@ export default function App() {
   const canManage = user?.roles.some((role) => role === 'analyst' || role === 'pm') ?? false
   // Developers only see their own findings, so filtering by owner means nothing to them.
   const canFilterByOwner = canManage || (user?.roles.includes('auditor') ?? false)
+  const isDeveloper = user?.roles.includes('developer') ?? false
   // Same rule as the backend: developers may only start and finish work, triage and risk acceptance are for analysts and PMs.
   const settableStatuses: FindingStatus[] = canManage
     ? (Object.keys(statusLabels) as FindingStatus[])
-    : user?.roles.includes('developer')
+    : isDeveloper
       ? ['InProgress', 'Remediated']
       : []
 
@@ -120,6 +121,8 @@ export default function App() {
           <FindingDetails
             finding={view.finding}
             canAssign={canManage}
+            canEdit={canManage || isDeveloper}
+            canChangeSeverity={canManage}
             settableStatuses={settableStatuses}
             onChanged={replaceFinding}
             onBack={() => setView({ name: 'list' })}

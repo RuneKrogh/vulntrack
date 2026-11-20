@@ -29,4 +29,9 @@ public static class FindingAccess
     public static bool CanSetStatus(this ClaimsPrincipal user, FindingStatus status) =>
         user.IsInRole(Roles.Analyst) || user.IsInRole(Roles.Pm) ||
         (user.IsInRole(Roles.Developer) && status is FindingStatus.InProgress or FindingStatus.Remediated);
+
+    // The severity decides how urgent a finding is. Developers may edit the other details of their findings,
+    // but lowering the severity would make their own work look less urgent, so only analysts and PMs may change it.
+    public static bool CanChangeSeverity(this ClaimsPrincipal user) =>
+        user.IsInRole(Roles.Analyst) || user.IsInRole(Roles.Pm);
 }

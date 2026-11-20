@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import {
   assignFinding,
   createFinding,
+  editFinding,
   getAssignees,
   limits,
   severities,
@@ -129,15 +130,44 @@ export function FindingList({ findings, filtered, onOpen }: FindingListProps) {
 type FindingDetailsProps = {
   finding: Finding
   canAssign: boolean
+  canEdit: boolean
+  canChangeSeverity: boolean
   settableStatuses: FindingStatus[]
   onChanged: (finding: Finding) => void
   onBack: () => void
 }
 
-export function FindingDetails({ finding, canAssign, settableStatuses, onChanged, onBack }: FindingDetailsProps) {
+export function FindingDetails({
+  finding,
+  canAssign,
+  canEdit,
+  canChangeSeverity,
+  settableStatuses,
+  onChanged,
+  onBack,
+}: FindingDetailsProps) {
+  const [editing, setEditing] = useState(false)
+
+  if (editing) {
+    return (
+      <EditForm
+        finding={finding}
+        canChangeSeverity={canChangeSeverity}
+        onSaved={(changed) => {
+          setEditing(false)
+          onChanged(changed)
+        }}
+        onCancel={() => setEditing(false)}
+      />
+    )
+  }
+
   return (
     <article>
-      <button onClick={onBack}>Back</button>
+      <div className="actions">
+        <button onClick={onBack}>Back</button>
+        {canEdit && <button onClick={() => setEditing(true)}>Edit</button>}
+      </div>
       <h2>{finding.title}</h2>
       <dl>
         <dt>Asset</dt>
@@ -272,6 +302,90 @@ function AssignForm({ finding, onAssigned }: { finding: Finding; onAssigned: (fi
   )
 }
 
+// The fields shared by the create and edit forms, with the same limits as the backend.
+function DetailFields({ finding, severityLocked = false }: { finding?: Finding; severityLocked?: boolean }) {
+  return (
+    <>
+      <label>
+        Title
+        <input name="title" required maxLength={limits.title} defaultValue={finding?.title} />
+      </label>
+      <label>
+        Affected asset
+        <input name="affectedAsset" required maxLength={limits.affectedAsset} defaultValue={finding?.affectedAsset} />
+      </label>
+      <label>
+        Severity
+        <select name="severity" required defaultValue={finding?.severity ?? 'Medium'} disabled={severityLocked}>
+          {severities.map((severity) => (
+            <option key={severity}>{severity}</option>
+          ))}
+        </select>
+        {severityLocked && <span className="muted">Only analysts and PMs can change the severity.</span>}
+      </label>
+      <label>
+        Description
+        <textarea
+          name="description"
+          required
+          maxLength={limits.description}
+          rows={8}
+          defaultValue={finding?.description}
+        />
+      </label>
+    </>
+  )
+}
+
+type EditFormProps = {
+  finding: Finding
+  canChangeSeverity: boolean
+  onSaved: (finding: Finding) => void
+  onCancel: () => void
+}
+
+function EditForm({ finding, canChangeSeverity, onSaved, onCancel }: EditFormProps) {
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    setSaving(true)
+    setError(null)
+    try {
+      onSaved(
+        await editFinding(finding.id, {
+          title: String(form.get('title')),
+          description: String(form.get('description')),
+          affectedAsset: String(form.get('affectedAsset')),
+          // A disabled field isn't part of the form data, so the current severity is sent unchanged.
+          severity: canChangeSeverity ? (form.get('severity') as Severity) : finding.severity,
+        }),
+      )
+    } catch (e) {
+      setError((e as Error).message)
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <h2>Edit finding</h2>
+      <DetailFields finding={finding} severityLocked={!canChangeSeverity} />
+      {error && <p role="alert">{error}</p>}
+      <div className="actions">
+        <button type="submit" className="primary" disabled={saving}>
+          Save
+        </button>
+        <button type="button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  )
+}
+
 export function FindingForm({ onSaved, onCancel }: { onSaved: (finding: Finding) => void; onCancel: () => void }) {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -301,29 +415,10 @@ export function FindingForm({ onSaved, onCancel }: { onSaved: (finding: Finding)
   return (
     <form onSubmit={submit}>
       <h2>New finding</h2>
-      <label>
-        Title
-        <input name="title" required maxLength={limits.title} />
-      </label>
-      <label>
-        Affected asset
-        <input name="affectedAsset" required maxLength={limits.affectedAsset} />
-      </label>
-      <label>
-        Severity
-        <select name="severity" required defaultValue="Medium">
-          {severities.map((severity) => (
-            <option key={severity}>{severity}</option>
-          ))}
-        </select>
-      </label>
+      <DetailFields />
       <label>
         Discovered
         <input name="discoveredAt" type="date" required max={today} defaultValue={today} />
-      </label>
-      <label>
-        Description
-        <textarea name="description" required maxLength={limits.description} rows={8} />
       </label>
       {error && <p role="alert">{error}</p>}
       <div className="actions">
