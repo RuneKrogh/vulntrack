@@ -15,7 +15,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         finding.Property(f => f.AffectedAsset).HasMaxLength(Finding.AffectedAssetMaxLength);
         finding.Property(f => f.ReporterEmail).HasMaxLength(Finding.EmailMaxLength);
         // Stored as text, so the database stays readable and reordering the enums can't change data.
-        finding.Property(f => f.Severity).HasConversion<string>().HasMaxLength(20);
-        finding.Property(f => f.Status).HasConversion<string>().HasMaxLength(20);
+        finding.Property(f => f.Severity).HasConversion<string>().HasMaxLength(32);
+        finding.Property(f => f.Status).HasConversion<string>().HasMaxLength(32);
     }
 }

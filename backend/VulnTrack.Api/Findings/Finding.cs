@@ -2,9 +2,14 @@ namespace VulnTrack.Api.Findings;
 
 public sealed class Finding
 {
-    public const int TitleMaxLength = 200;
-    public const int DescriptionMaxLength = 10_000;
-    public const int AffectedAssetMaxLength = 200;
+    // Limits on user input, so the public report form can't be used to fill the database.
+    // A title is a one-line summary (GitHub issues allow 256).
+    public const int TitleMaxLength = 256;
+    // Room for steps to reproduce and a short proof of concept. Long scanner output belongs in attachments.
+    public const int DescriptionMaxLength = 8192;
+    // A component or system name, like "payment-api".
+    public const int AffectedAssetMaxLength = 256;
+    // The longest valid email address (RFC 5321, see RFC 3696 errata 1690).
     public const int EmailMaxLength = 254;
 
     // Random ids, so findings can't be enumerated by counting.

@@ -16,12 +16,12 @@ namespace VulnTrack.Api.Data.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "character varying(10000)", maxLength: 10000, nullable: false),
-                    AffectedAsset = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Severity = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Title = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    Description = table.Column<string>(type: "character varying(8192)", maxLength: 8192, nullable: false),
+                    AffectedAsset = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    Severity = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     DiscoveredAt = table.Column<DateOnly>(type: "date", nullable: false),
-                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Status = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     ReporterEmail = table.Column<string>(type: "character varying(254)", maxLength: 254, nullable: true)
                 },
                 constraints: table =>
