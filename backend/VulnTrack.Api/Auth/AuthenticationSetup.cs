@@ -64,8 +64,11 @@ public static class AuthenticationSetup
                 options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
 
                 // Logout is called with fetch, so return the Keycloak logout URL for the SPA to navigate to.
+                // The handler normally adds the state after this event. It carries the redirect back to the app,
+                // so it has to be added here, since the handler stops here.
                 options.Events.OnRedirectToIdentityProviderForSignOut = context =>
                 {
+                    context.ProtocolMessage.State = context.Options.StateDataFormat.Protect(context.Properties);
                     context.HandleResponse();
                     return context.Response.WriteAsJsonAsync(new { url = context.ProtocolMessage.CreateLogoutRequestUrl() });
                 };
