@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http.Features;
@@ -15,6 +16,11 @@ namespace VulnTrack.Api.Tests;
 
 public sealed class ReportTests(PostgresFactory factory) : IClassFixture<PostgresFactory>
 {
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() },
+    };
+
     private static int _nextIp;
 
     // Every test gets its own client address, so the rate limit of one test doesn't affect another.
@@ -108,6 +114,29 @@ public sealed class ReportTests(PostgresFactory factory) : IClassFixture<Postgre
         var response = await client.PostAsJsonAsync("/api/reports", body, Ct);
 
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, $"{reason}: {response.StatusCode}");
+    }
+
+    [Theory]
+    [InlineData("alice", "analyst", true)]
+    [InlineData("paul", "pm", true)]
+    [InlineData("audrey", "auditor", false)]
+    [InlineData("dev-1", "developer", false)]
+    public async Task ReporterEmail_IsOnlyShownToAnalystsAndPms(string username, string role, bool expected)
+    {
+        var report = await factory.CreateAnonymousClient(NewIp()).PostAsJsonAsync("/api/reports", ValidReport($"Email visible to {role}"), Ct);
+        var reference = (await report.Content.ReadFromJsonAsync<ReportReceipt>(Ct))!.Reference;
+        // Assigned to dev-1, so the developer can see the finding at all.
+        var tomorrow = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(1);
+        await factory.CreateClientAs("alice", "analyst")
+            .PutAsJsonAsync($"/api/findings/{reference}/assignment", new { assigneeId = FakeUserDirectory.Developer.Id, dueDate = tomorrow }, Ct);
+        var client = factory.CreateClientAs(username, role);
+
+        var single = await client.GetFromJsonAsync<FindingResponse>($"/api/findings/{reference}", Json, Ct);
+        var inList = (await client.GetFromJsonAsync<List<FindingResponse>>("/api/findings", Json, Ct))!.Single(f => f.Id == reference);
+
+        var email = expected ? "reporter@example.com" : null;
+        Assert.Equal(email, single!.ReporterEmail);
+        Assert.Equal(email, inList.ReporterEmail);
     }
 
     // A cross-site page can send these content types without a CORS preflight. The endpoint must not

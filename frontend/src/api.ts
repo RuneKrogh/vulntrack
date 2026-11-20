@@ -19,6 +19,8 @@ export type Finding = {
   assigneeId: string | null
   assigneeName: string | null
   dueDate: string | null
+  // Only sent to analysts and PMs, and only for findings from the public report form.
+  reporterEmail: string | null
 }
 
 export type NewFinding = Pick<Finding, 'title' | 'description' | 'affectedAsset' | 'severity' | 'discoveredAt'>

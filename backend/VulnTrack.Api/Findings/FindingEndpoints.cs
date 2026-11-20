@@ -21,21 +21,24 @@ public static class FindingEndpoints
             .RequireAuthorization(Policies.AssignFindings);
     }
 
-    private static async Task<List<FindingResponse>> List(ClaimsPrincipal user, AppDbContext db, CancellationToken cancellationToken) =>
-        await db.Findings
+    private static async Task<List<FindingResponse>> List(ClaimsPrincipal user, AppDbContext db, CancellationToken cancellationToken)
+    {
+        var showReporterEmail = user.CanSeeReporterEmail();
+        return await db.Findings
             .VisibleTo(user)
             .OrderByDescending(f => f.DiscoveredAt)
-            .Select(f => FindingResponse.From(f))
+            .Select(f => FindingResponse.From(f, showReporterEmail))
             .ToListAsync(cancellationToken);
+    }
 
     // A finding the user may not see gives 404 like a missing one, so the response doesn't reveal that it exists.
     private static async Task<IResult> Get(Guid id, ClaimsPrincipal user, AppDbContext db, CancellationToken cancellationToken)
     {
         var finding = await db.Findings.VisibleTo(user).FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
-        return finding is null ? Results.NotFound() : Results.Ok(FindingResponse.From(finding));
+        return finding is null ? Results.NotFound() : Results.Ok(FindingResponse.From(finding, user.CanSeeReporterEmail()));
     }
 
-    private static async Task<IResult> Create(CreateFindingRequest request, AppDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> Create(CreateFindingRequest request, ClaimsPrincipal user, AppDbContext db, CancellationToken cancellationToken)
     {
         // Status always starts as New, and internal findings never have a reporter email.
         var finding = new Finding
@@ -48,12 +51,13 @@ public static class FindingEndpoints
         };
         db.Findings.Add(finding);
         await db.SaveChangesAsync(cancellationToken);
-        return Results.Created($"/api/findings/{finding.Id}", FindingResponse.From(finding));
+        return Results.Created($"/api/findings/{finding.Id}", FindingResponse.From(finding, user.CanSeeReporterEmail()));
     }
 
     private static async Task<IResult> Assign(
         Guid id,
         AssignFindingRequest request,
+        ClaimsPrincipal user,
         AppDbContext db,
         IUserDirectory users,
         CancellationToken cancellationToken)
@@ -75,7 +79,7 @@ public static class FindingEndpoints
         finding.AssigneeName = assignee.Name;
         finding.DueDate = request.DueDate;
         await db.SaveChangesAsync(cancellationToken);
-        return Results.Ok(FindingResponse.From(finding));
+        return Results.Ok(FindingResponse.From(finding, user.CanSeeReporterEmail()));
     }
 }
 
@@ -118,9 +122,10 @@ public sealed record FindingResponse(
     FindingStatus Status,
     string? AssigneeId,
     string? AssigneeName,
-    DateOnly? DueDate)
+    DateOnly? DueDate,
+    string? ReporterEmail)
 {
-    public static FindingResponse From(Finding finding) => new(
+    public static FindingResponse From(Finding finding, bool includeReporterEmail) => new(
         finding.Id,
         finding.Title,
         finding.Description,
@@ -130,5 +135,6 @@ public sealed record FindingResponse(
         finding.Status,
         finding.AssigneeId,
         finding.AssigneeName,
-        finding.DueDate);
+        finding.DueDate,
+        includeReporterEmail ? finding.ReporterEmail : null);
 }

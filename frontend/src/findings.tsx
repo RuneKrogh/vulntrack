@@ -80,6 +80,13 @@ export function FindingDetails({ finding, canAssign, onChanged, onBack }: Findin
         <dd>{finding.dueDate ?? '–'}</dd>
         <dt>Discovered</dt>
         <dd>{finding.discoveredAt}</dd>
+        {/* Plain text and not a mailto link, so a crafted address can't fill in recipients or text in a mail client. */}
+        {finding.reporterEmail && (
+          <>
+            <dt>Reported by</dt>
+            <dd>{finding.reporterEmail}</dd>
+          </>
+        )}
       </dl>
       <p className="description">{finding.description}</p>
       {canAssign && <AssignForm finding={finding} onAssigned={onChanged} />}
