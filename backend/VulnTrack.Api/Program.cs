@@ -3,12 +3,14 @@ using VulnTrack.Api.Auth;
 using VulnTrack.Api.Data;
 using VulnTrack.Api.Findings;
 using VulnTrack.Api.Security;
+using VulnTrack.Api.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOidcAuthentication(builder.Configuration);
 builder.Services.AddRolePolicies();
 builder.Services.AddDatabase(builder.Configuration);
+builder.Services.AddHttpClient<IUserDirectory, KeycloakUserDirectory>();
 builder.Services.AddValidation();
 // Enums are sent as names. Numbers are rejected, so values outside the enum can't slip through.
 builder.Services.ConfigureHttpJsonOptions(options =>

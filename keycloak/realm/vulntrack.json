@@ -16,6 +16,9 @@
       ]
     }
   },
+  "clientScopeMappings": {
+    "realm-management": [{ "client": "vulntrack", "roles": ["view-users", "view-clients"] }]
+  },
   "clients": [
     {
       "clientId": "vulntrack",
@@ -24,6 +27,7 @@
       "publicClient": false,
       "secret": "${OIDC_CLIENT_SECRET}",
       "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
       "fullScopeAllowed": false,
       "redirectUris": ["http://localhost:8000/signin-oidc"],
       "attributes": {
@@ -48,6 +52,12 @@
     }
   ],
   "users": [
+    {
+      "username": "service-account-vulntrack",
+      "enabled": true,
+      "serviceAccountClientId": "vulntrack",
+      "clientRoles": { "realm-management": ["view-users", "view-clients"] }
+    },
     {
       "username": "analyst",
       "email": "analyst@vulntrack.test",

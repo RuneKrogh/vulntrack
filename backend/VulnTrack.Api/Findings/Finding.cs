@@ -11,6 +11,9 @@ public sealed class Finding
     public const int AffectedAssetMaxLength = 256;
     // The longest valid email address (RFC 5321, see RFC 3696 errata 1690).
     public const int EmailMaxLength = 254;
+    // Keycloak user ids are UUIDs (36 characters).
+    public const int AssigneeIdMaxLength = 64;
+    public const int AssigneeNameMaxLength = 256;
 
     // Random ids, so findings can't be enumerated by counting.
     public Guid Id { get; init; } = Guid.NewGuid();
@@ -23,6 +26,12 @@ public sealed class Finding
 
     // Only set when the finding comes from the public report form.
     public string? ReporterEmail { get; init; }
+
+    // The Keycloak user id of the developer who has to fix it. The name is stored too,
+    // so lists can show it without asking Keycloak.
+    public string? AssigneeId { get; set; }
+    public string? AssigneeName { get; set; }
+    public DateOnly? DueDate { get; set; }
 }
 
 public enum Severity

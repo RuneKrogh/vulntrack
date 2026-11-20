@@ -15,6 +15,7 @@ public static class Policies
 {
     public const string ViewFindings = nameof(ViewFindings);
     public const string CreateFindings = nameof(CreateFindings);
+    public const string AssignFindings = nameof(AssignFindings);
 }
 
 public static class AuthorizationSetup
@@ -26,7 +27,8 @@ public static class AuthorizationSetup
             // Every endpoint requires a signed-in user unless it explicitly allows anonymous access.
             .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
             .AddPolicy(Policies.ViewFindings, policy => policy.RequireRole(Roles.Analyst, Roles.Developer, Roles.Pm, Roles.Auditor))
-            .AddPolicy(Policies.CreateFindings, policy => policy.RequireRole(Roles.Analyst, Roles.Pm));
+            .AddPolicy(Policies.CreateFindings, policy => policy.RequireRole(Roles.Analyst, Roles.Pm))
+            .AddPolicy(Policies.AssignFindings, policy => policy.RequireRole(Roles.Analyst, Roles.Pm));
         return services;
     }
 }
