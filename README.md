@@ -13,20 +13,28 @@ cp .env.example .env   # then set your own passwords and client secret
 docker compose up --build
 ```
 
-Open <http://localhost:8000>. Use `localhost` and not `127.0.0.1`, since the login redirects expect it. The Keycloak admin console is at <http://localhost:8080>, with the admin login from `.env`.
+Open <http://localhost:8000>. Use `localhost` and not `127.0.0.1`, since the login redirects expect it. The Keycloak admin console is at <http://localhost:8080>, with the admin login from `.env`. To start over with an empty database, run `docker compose down -v` before starting it again.
 
 Dependencies are installed and built inside containers, so nothing from npm or NuGet runs on your machine.
 
 ## Test users
 
-| Username | Password | Role |
-|---|---|---|
-| analyst | analyst-test-pw | Analyst |
-| developer | developer-test-pw | Developer |
-| pm | pm-test-password | PM |
-| auditor | auditor-test-pw | Auditor |
+| Username | Password | Role | Can |
+|---|---|---|---|
+| analyst | analyst-test-pw | Analyst | See all findings, create, edit and assign them, and set any status |
+| developer | developer-test-pw | Developer | See only the findings assigned to them, set them to In progress or Remediated, and edit them except for the severity |
+| pm | pm-test-password | PM | The same as an analyst |
+| auditor | auditor-test-pw | Auditor | See all findings and the dashboard, but not change anything |
+
+Only analysts and PMs see the reporter's email on findings from the public form.
+
+## Reporting a vulnerability
+
+External reporters use the form at <http://localhost:8000/report>, which needs no login. Each IP address can send 5 reports per 10 minutes, so the form can't be used to flood the database. Restarting the app with `docker compose restart app` resets the limit.
 
 ## Tests
+
+The tests need the .NET 10 SDK and a running Docker, since they start a PostgreSQL container.
 
 ```bash
 dotnet test --solution backend/VulnTrack.slnx
