@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace VulnTrack.Api.Data;
 
@@ -18,7 +20,11 @@ public sealed class DatabaseMigrator(IServiceScopeFactory scopeFactory) : IHoste
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         using var scope = scopeFactory.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync(cancellationToken);
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        // EF reads the migration history before it creates the history table, which logs a failed query
+        // on an empty database. Creating the table first keeps real database errors the only ones in the log.
+        await db.GetService<IHistoryRepository>().CreateIfNotExistsAsync(cancellationToken);
+        await db.Database.MigrateAsync(cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
