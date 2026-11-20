@@ -1,9 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using VulnTrack.Api.Data;
 using VulnTrack.Api.Findings;
@@ -106,6 +108,26 @@ public sealed class ReportTests(PostgresFactory factory) : IClassFixture<Postgre
         var response = await client.PostAsJsonAsync("/api/reports", body, Ct);
 
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, $"{reason}: {response.StatusCode}");
+    }
+
+    // A cross-site page can send these content types without a CORS preflight. The endpoint must not
+    // read them as JSON, so CSRF stays blocked even if the custom header check were gone.
+    [Theory]
+    [InlineData("text/plain")]
+    [InlineData("application/x-www-form-urlencoded")]
+    [InlineData("multipart/form-data")]
+    public async Task Submit_WithCrossSiteContentType_StoresNothing(string contentType)
+    {
+        var client = factory.CreateAnonymousClient(NewIp());
+        var title = $"Sent as {contentType}";
+        var json = JsonSerializer.Serialize(ValidReport(title));
+
+        var response = await client.PostAsync("/api/reports", new StringContent(json, Encoding.UTF8, contentType), Ct);
+
+        Assert.NotEqual(HttpStatusCode.Accepted, response.StatusCode);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.False(await db.Findings.AnyAsync(f => f.Title == title, Ct));
     }
 
     // The test server can't limit body sizes, so this test runs the app on Kestrel like in production.
