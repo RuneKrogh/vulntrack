@@ -48,7 +48,14 @@ export default function App() {
       </header>
       <main>
         {error && <p role="alert">{error}</p>}
-        {user === null && <p>Log in to see and manage findings.</p>}
+        {user === null && (
+          <>
+            <p>Log in to see and manage findings.</p>
+            <p>
+              Found a vulnerability? <a href="/report">Report it here</a>, no account needed.
+            </p>
+          </>
+        )}
         {user && view.name === 'list' && (
           <>
             <div className="toolbar">

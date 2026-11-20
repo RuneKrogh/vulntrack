@@ -23,13 +23,15 @@ export type Finding = {
 
 export type NewFinding = Pick<Finding, 'title' | 'description' | 'affectedAsset' | 'severity' | 'discoveredAt'>
 
+export type NewReport = Pick<Finding, 'title' | 'description' | 'affectedAsset' | 'severity'> & { reporterEmail: string }
+
 export type Assignee = {
   id: string
   name: string
 }
 
-// Same limits as the backend, so the form stops input the API would reject anyway.
-export const limits = { title: 256, description: 8192, affectedAsset: 256 }
+// Same limits as the backend, so the forms stop input the API would reject anyway.
+export const limits = { title: 256, description: 8192, affectedAsset: 256, email: 254 }
 
 // Every request carries the X-CSRF header, which the backend requires on state-changing API calls.
 async function request(path: string, init: RequestInit = {}): Promise<Response> {
@@ -74,6 +76,21 @@ export async function createFinding(finding: NewFinding): Promise<Finding> {
   })
   if (!response.ok) throw await failure(response, 'Saving the finding')
   return response.json()
+}
+
+// Public, no login needed. Returns the reference the reporter gets as acknowledgement.
+export async function submitReport(report: NewReport): Promise<string> {
+  const response = await request('/api/reports', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(report),
+  })
+  if (response.status === 429) {
+    throw new Error('Too many reports from your network. Please try again in a few minutes.')
+  }
+  if (!response.ok) throw await failure(response, 'Sending the report')
+  const { reference } = (await response.json()) as { reference: string }
+  return reference
 }
 
 export async function getAssignees(): Promise<Assignee[]> {
