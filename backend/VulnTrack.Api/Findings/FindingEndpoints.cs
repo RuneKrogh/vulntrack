@@ -21,11 +21,14 @@ public static class FindingEndpoints
             .RequireAuthorization(Policies.AssignFindings);
     }
 
-    private static async Task<List<FindingResponse>> List(ClaimsPrincipal user, AppDbContext db, CancellationToken cancellationToken)
+    private static async Task<List<FindingResponse>> List(
+        [AsParameters] FindingFilter filter,
+        ClaimsPrincipal user,
+        AppDbContext db,
+        CancellationToken cancellationToken)
     {
         var showReporterEmail = user.CanSeeReporterEmail();
-        return await db.Findings
-            .VisibleTo(user)
+        return await filter.Apply(db.Findings.VisibleTo(user))
             .OrderByDescending(f => f.DiscoveredAt)
             .Select(f => FindingResponse.From(f, showReporterEmail))
             .ToListAsync(cancellationToken);
