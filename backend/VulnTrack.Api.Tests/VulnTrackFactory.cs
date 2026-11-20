@@ -1,6 +1,8 @@
+using System.Net;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,6 +33,7 @@ public class VulnTrackFactory : WebApplicationFactory<Program>
                 options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
             });
             services.AddSingleton<IUserDirectory, FakeUserDirectory>();
+            services.AddSingleton<IStartupFilter, TestClientIpFilter>();
         });
         ConfigureDatabase(builder);
     }
@@ -48,6 +51,35 @@ public class VulnTrackFactory : WebApplicationFactory<Program>
         client.DefaultRequestHeaders.Add(SecurityMiddleware.CsrfHeader, "1");
         return client;
     }
+
+    // A client without a login, coming from the given IP address.
+    public HttpClient CreateAnonymousClient(string ip)
+    {
+        var client = CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add(TestClientIpFilter.IpHeader, ip);
+        client.DefaultRequestHeaders.Add(SecurityMiddleware.CsrfHeader, "1");
+        return client;
+    }
+}
+
+// The test server has no remote address, so tests set one with a header to tell clients apart.
+public sealed class TestClientIpFilter : IStartupFilter
+{
+    public const string IpHeader = "X-Test-Client-Ip";
+
+    public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => app =>
+    {
+        app.Use((context, nextMiddleware) =>
+        {
+            if (IPAddress.TryParse(context.Request.Headers[IpHeader], out var ip))
+            {
+                context.Connection.RemoteIpAddress = ip;
+            }
+
+            return nextMiddleware(context);
+        });
+        next(app);
+    };
 }
 
 // Same as VulnTrackFactory, but with a real Postgres in a container. Needs Docker.
