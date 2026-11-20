@@ -8,6 +8,14 @@ export type Severity = (typeof severities)[number]
 
 export type FindingStatus = 'New' | 'Triaged' | 'InProgress' | 'Remediated' | 'AcceptedRisk'
 
+export const statusLabels: Record<FindingStatus, string> = {
+  New: 'New',
+  Triaged: 'Triaged',
+  InProgress: 'In progress',
+  Remediated: 'Remediated',
+  AcceptedRisk: 'Accepted risk',
+}
+
 export type Finding = {
   id: string
   title: string
@@ -24,6 +32,14 @@ export type Finding = {
 }
 
 export type NewFinding = Pick<Finding, 'title' | 'description' | 'affectedAsset' | 'severity' | 'discoveredAt'>
+
+// Counts over the findings the user may see. Open means not remediated and not accepted.
+export type Dashboard = {
+  openBySeverity: Record<Severity, number>
+  byStatus: Record<FindingStatus, number>
+  openWithDueDate: number
+  overdue: number
+}
 
 // Empty values mean no filter and are left out of the request.
 export type FindingFilter = {
@@ -93,6 +109,12 @@ export async function createFinding(finding: NewFinding): Promise<Finding> {
     body: JSON.stringify(finding),
   })
   if (!response.ok) throw await failure(response, 'Saving the finding')
+  return response.json()
+}
+
+export async function getDashboard(): Promise<Dashboard> {
+  const response = await request('/api/dashboard')
+  if (!response.ok) throw await failure(response, 'Loading the dashboard')
   return response.json()
 }
 

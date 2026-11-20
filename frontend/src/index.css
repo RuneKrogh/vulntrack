@@ -109,6 +109,35 @@ tbody tr:hover {
   background: #1f2028;
 }
 
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.dashboard h2 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* The summary rows aren't links like the rows in the findings list. */
+.dashboard tbody tr {
+  cursor: default;
+}
+
+.dashboard tbody tr:hover {
+  background: none;
+}
+
+.dashboard .count {
+  text-align: right;
+}
+
+.overdue {
+  color: #ff8787;
+}
+
 .filters {
   display: flex;
   flex-wrap: wrap;
