@@ -18,4 +18,9 @@ public static class FindingAccess
         var userId = user.FindFirstValue("sub");
         return string.IsNullOrEmpty(userId) ? findings.Where(_ => false) : findings.Where(f => f.AssigneeId == userId);
     }
+
+    // The reporter's email is personal data. Analysts and PMs need it to contact the reporter during triage.
+    // Developers and auditors don't, so they never get it.
+    public static bool CanSeeReporterEmail(this ClaimsPrincipal user) =>
+        user.IsInRole(Roles.Analyst) || user.IsInRole(Roles.Pm);
 }
