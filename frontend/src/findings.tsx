@@ -1,5 +1,18 @@
-import { useState, type FormEvent } from 'react'
-import { createFinding, limits, severities, type Finding, type FindingStatus, type Severity } from './api'
+import { useEffect, useState, type FormEvent } from 'react'
+import {
+  assignFinding,
+  createFinding,
+  getAssignees,
+  limits,
+  severities,
+  type Assignee,
+  type Finding,
+  type FindingStatus,
+  type Severity,
+} from './api'
+
+// The backend compares dates against the UTC date, so the forms do the same.
+const todayUtc = () => new Date().toISOString().slice(0, 10)
 
 const statusLabels: Record<FindingStatus, string> = {
   New: 'New',
@@ -20,6 +33,8 @@ export function FindingList({ findings, onOpen }: { findings: Finding[]; onOpen:
           <th>Asset</th>
           <th>Severity</th>
           <th>Status</th>
+          <th>Assignee</th>
+          <th>Due</th>
           <th>Discovered</th>
         </tr>
       </thead>
@@ -30,6 +45,8 @@ export function FindingList({ findings, onOpen }: { findings: Finding[]; onOpen:
             <td>{finding.affectedAsset}</td>
             <td>{finding.severity}</td>
             <td>{statusLabels[finding.status]}</td>
+            <td>{finding.assigneeName ?? '–'}</td>
+            <td>{finding.dueDate ?? '–'}</td>
             <td>{finding.discoveredAt}</td>
           </tr>
         ))}
@@ -38,7 +55,14 @@ export function FindingList({ findings, onOpen }: { findings: Finding[]; onOpen:
   )
 }
 
-export function FindingDetails({ finding, onBack }: { finding: Finding; onBack: () => void }) {
+type FindingDetailsProps = {
+  finding: Finding
+  canAssign: boolean
+  onChanged: (finding: Finding) => void
+  onBack: () => void
+}
+
+export function FindingDetails({ finding, canAssign, onChanged, onBack }: FindingDetailsProps) {
   return (
     <article>
       <button onClick={onBack}>Back</button>
@@ -50,19 +74,79 @@ export function FindingDetails({ finding, onBack }: { finding: Finding; onBack: 
         <dd>{finding.severity}</dd>
         <dt>Status</dt>
         <dd>{statusLabels[finding.status]}</dd>
+        <dt>Assignee</dt>
+        <dd>{finding.assigneeName ?? 'Not assigned'}</dd>
+        <dt>Due</dt>
+        <dd>{finding.dueDate ?? '–'}</dd>
         <dt>Discovered</dt>
         <dd>{finding.discoveredAt}</dd>
       </dl>
       <p className="description">{finding.description}</p>
+      {canAssign && <AssignForm finding={finding} onAssigned={onChanged} />}
     </article>
+  )
+}
+
+function AssignForm({ finding, onAssigned }: { finding: Finding; onAssigned: (finding: Finding) => void }) {
+  const [assignees, setAssignees] = useState<Assignee[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [today] = useState(todayUtc)
+
+  useEffect(() => {
+    getAssignees()
+      .then(setAssignees)
+      .catch((e: Error) => setError(e.message))
+  }, [])
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    setSaving(true)
+    setError(null)
+    try {
+      onAssigned(await assignFinding(finding.id, String(form.get('assigneeId')), String(form.get('dueDate'))))
+    } catch (e) {
+      setError((e as Error).message)
+    }
+    setSaving(false)
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <h2>Assign</h2>
+      <label>
+        Developer
+        {/* The key makes the dropdown pick up the current assignee once the list has loaded. */}
+        <select name="assigneeId" required defaultValue={finding.assigneeId ?? ''} key={assignees.length}>
+          <option value="" disabled>
+            Choose a developer
+          </option>
+          {assignees.map((assignee) => (
+            <option key={assignee.id} value={assignee.id}>
+              {assignee.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Due date
+        <input name="dueDate" type="date" required min={today} defaultValue={finding.dueDate ?? ''} />
+      </label>
+      {error && <p role="alert">{error}</p>}
+      <div className="actions">
+        <button type="submit" className="primary" disabled={saving}>
+          Save assignment
+        </button>
+      </div>
+    </form>
   )
 }
 
 export function FindingForm({ onSaved, onCancel }: { onSaved: (finding: Finding) => void; onCancel: () => void }) {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  // The backend compares against the UTC date, so the form does the same.
-  const [today] = useState(() => new Date().toISOString().slice(0, 10))
+  const [today] = useState(todayUtc)
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()

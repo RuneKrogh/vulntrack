@@ -19,8 +19,13 @@ export default function App() {
       .catch((e: Error) => setError(e.message))
   }, [])
 
-  // Only hides the button. The backend decides who may actually create findings.
-  const canCreate = user?.roles.some((role) => role === 'analyst' || role === 'pm') ?? false
+  // Only hides buttons and forms. The backend decides who may actually create and assign findings.
+  const canManage = user?.roles.some((role) => role === 'analyst' || role === 'pm') ?? false
+
+  function replaceFinding(changed: Finding) {
+    setFindings(findings.map((finding) => (finding.id === changed.id ? changed : finding)))
+    setView({ name: 'details', finding: changed })
+  }
 
   return (
     <>
@@ -48,7 +53,7 @@ export default function App() {
           <>
             <div className="toolbar">
               <h2>Findings</h2>
-              {canCreate && (
+              {canManage && (
                 <button className="primary" onClick={() => setView({ name: 'new' })}>
                   New finding
                 </button>
@@ -58,7 +63,12 @@ export default function App() {
           </>
         )}
         {user && view.name === 'details' && (
-          <FindingDetails finding={view.finding} onBack={() => setView({ name: 'list' })} />
+          <FindingDetails
+            finding={view.finding}
+            canAssign={canManage}
+            onChanged={replaceFinding}
+            onBack={() => setView({ name: 'list' })}
+          />
         )}
         {user && view.name === 'new' && (
           <FindingForm
