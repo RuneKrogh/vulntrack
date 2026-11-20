@@ -1,6 +1,6 @@
 # Everything is installed and built inside containers, so nothing from npm or NuGet runs on the host.
 
-FROM node:24-alpine AS frontend
+FROM node:26-alpine AS frontend
 WORKDIR /src
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --ignore-scripts
