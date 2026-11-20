@@ -12,10 +12,11 @@ import {
   type FindingFilter,
   type FindingStatus,
 } from './api'
+import { AuditList } from './audit'
 import { DashboardSummary } from './dashboard'
 import { FilterBar, FindingDetails, FindingForm, FindingList } from './findings'
 
-type View = { name: 'list' } | { name: 'details'; finding: Finding } | { name: 'new' }
+type View = { name: 'list' } | { name: 'details'; finding: Finding } | { name: 'new' } | { name: 'audit' }
 
 export default function App() {
   const [user, setUser] = useState<CurrentUser | null | undefined>(undefined)
@@ -57,6 +58,8 @@ export default function App() {
   // Developers only see their own findings, so filtering by owner means nothing to them.
   const canFilterByOwner = canManage || (user?.roles.includes('auditor') ?? false)
   const isDeveloper = user?.roles.includes('developer') ?? false
+  // AUDIT-02: only PMs and auditors read the audit trail.
+  const canViewAudit = user?.roles.some((role) => role === 'pm' || role === 'auditor') ?? false
   // Same rule as the backend: developers may only start and finish work, triage and risk acceptance are for analysts and PMs.
   const settableStatuses: FindingStatus[] = canManage
     ? (Object.keys(statusLabels) as FindingStatus[])
@@ -103,11 +106,14 @@ export default function App() {
             {dashboard && <DashboardSummary dashboard={dashboard} />}
             <div className="toolbar">
               <h2>Findings</h2>
-              {canManage && (
-                <button className="primary" onClick={() => setView({ name: 'new' })}>
-                  New finding
-                </button>
-              )}
+              <div className="actions">
+                {canViewAudit && <button onClick={() => setView({ name: 'audit' })}>Audit log</button>}
+                {canManage && (
+                  <button className="primary" onClick={() => setView({ name: 'new' })}>
+                    New finding
+                  </button>
+                )}
+              </div>
             </div>
             <FilterBar filter={filter} showOwner={canFilterByOwner} onChange={setFilter} />
             <FindingList
@@ -123,10 +129,18 @@ export default function App() {
             canAssign={canManage}
             canEdit={canManage || isDeveloper}
             canChangeSeverity={canManage}
+            canViewAudit={canViewAudit}
             settableStatuses={settableStatuses}
             onChanged={replaceFinding}
             onBack={() => setView({ name: 'list' })}
           />
+        )}
+        {user && view.name === 'audit' && (
+          <article>
+            <button onClick={() => setView({ name: 'list' })}>Back</button>
+            <h2>Audit log</h2>
+            <AuditList />
+          </article>
         )}
         {user && view.name === 'new' && (
           <FindingForm

@@ -7,6 +7,11 @@ public sealed class AuditEntry
     public const int ActorNameMaxLength = 256;
 
     public Guid Id { get; init; } = Guid.NewGuid();
+
+    // Set by the database and always increasing. It gives the entries a fixed order, also when several
+    // were saved at the same time, so the log can be paged without gaps or duplicates.
+    public long Sequence { get; init; }
+
     public Guid FindingId { get; init; }
 
     // The Keycloak user id, or null for the public report form.

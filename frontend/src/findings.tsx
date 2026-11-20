@@ -14,6 +14,7 @@ import {
   type FindingStatus,
   type Severity,
 } from './api'
+import { AuditList } from './audit'
 
 // The backend compares dates against the UTC date, so the forms do the same.
 const todayUtc = () => new Date().toISOString().slice(0, 10)
@@ -132,6 +133,7 @@ type FindingDetailsProps = {
   canAssign: boolean
   canEdit: boolean
   canChangeSeverity: boolean
+  canViewAudit: boolean
   settableStatuses: FindingStatus[]
   onChanged: (finding: Finding) => void
   onBack: () => void
@@ -142,6 +144,7 @@ export function FindingDetails({
   canAssign,
   canEdit,
   canChangeSeverity,
+  canViewAudit,
   settableStatuses,
   onChanged,
   onBack,
@@ -195,6 +198,12 @@ export function FindingDetails({
         <StatusForm finding={finding} settableStatuses={settableStatuses} onChanged={onChanged} />
       )}
       {canAssign && <AssignForm finding={finding} onAssigned={onChanged} />}
+      {canViewAudit && (
+        <section>
+          <h2>History</h2>
+          <AuditList findingId={finding.id} refresh={finding} />
+        </section>
+      )}
     </article>
   )
 }

@@ -39,6 +39,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IAuditA
         finding.Property(f => f.Status).HasConversion<string>().HasMaxLength(32);
 
         var audit = modelBuilder.Entity<AuditEntry>();
+        audit.Property(e => e.Sequence).UseIdentityAlwaysColumn();
+        audit.HasIndex(e => e.Sequence).IsUnique();
         audit.Property(e => e.ActorId).HasMaxLength(AuditEntry.ActorIdMaxLength);
         audit.Property(e => e.ActorName).HasMaxLength(AuditEntry.ActorNameMaxLength);
         audit.Property(e => e.Action).HasConversion<string>().HasMaxLength(32);
