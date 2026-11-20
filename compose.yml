@@ -54,16 +54,8 @@ services:
       Oidc__MetadataAddress: http://keycloak:8080/realms/vulntrack/.well-known/openid-configuration
       Keycloak__AdminUrl: http://keycloak:8080/admin/realms/vulntrack
       Oidc__RequireHttpsMetadata: "false"
-    # Mounted as a file in /run/secrets, so the key doesn't show up in the container's environment.
-    secrets:
-      - source: encryption_key
-        target: Encryption__Key
     ports:
       - 127.0.0.1:8000:8080
 
 volumes:
   postgres-data:
-
-secrets:
-  encryption_key:
-    environment: ENCRYPTION_KEY

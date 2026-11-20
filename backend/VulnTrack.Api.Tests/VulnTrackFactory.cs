@@ -1,6 +1,5 @@
 using System.Net;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
@@ -23,7 +22,6 @@ public class VulnTrackFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Oidc:ClientSecret", "test-secret");
-        builder.UseSetting("Encryption:Key", Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
         builder.UseSetting("Oidc:RequireHttpsMetadata", "false");
         builder.ConfigureServices(services =>
         {

@@ -3,21 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using VulnTrack.Api.Audit;
 using VulnTrack.Api.Findings;
-using VulnTrack.Api.Security;
 
 namespace VulnTrack.Api.Data;
 
-public sealed class AppDbContext(
-    DbContextOptions<AppDbContext> options,
-    IAuditActor auditActor,
-    FieldEncryption encryption) : DbContext(options)
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IAuditActor auditActor) : DbContext(options)
 {
-    // The audit trail names the encrypted columns after the field they hold.
-    private static readonly Dictionary<string, string> AuditFieldNames = new()
-    {
-        [nameof(Finding.EncryptedDescription)] = nameof(Finding.Description),
-    };
-
     // Fields whose old and new values are copied into the audit trail. For any other field the log only
     // says that it changed, so the description and the reporter's email never end up there in plain text.
     private static readonly HashSet<string> LoggedValues =
@@ -39,10 +29,9 @@ public sealed class AppDbContext(
     {
         var finding = modelBuilder.Entity<Finding>();
         finding.Property(f => f.Title).HasMaxLength(Finding.TitleMaxLength);
+        finding.Property(f => f.Description).HasMaxLength(Finding.DescriptionMaxLength);
         finding.Property(f => f.AffectedAsset).HasMaxLength(Finding.AffectedAssetMaxLength);
-        // Only the encrypted versions are stored. The request validation limits the plain text.
-        finding.Ignore(f => f.Description);
-        finding.Ignore(f => f.ReporterEmail);
+        finding.Property(f => f.ReporterEmail).HasMaxLength(Finding.EmailMaxLength);
         finding.Property(f => f.AssigneeId).HasMaxLength(Finding.AssigneeIdMaxLength);
         finding.Property(f => f.AssigneeName).HasMaxLength(Finding.AssigneeNameMaxLength);
         // Stored as text, so the database stays readable and reordering the enums can't change data.
@@ -66,28 +55,14 @@ public sealed class AppDbContext(
     // A change can't be saved without its audit entry, and new endpoints are logged without extra code.
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
-        EncryptFindings();
         AddAuditEntries();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-        EncryptFindings();
         AddAuditEntries();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-    }
-
-    // Runs before the audit diff, so a changed description shows up there as a changed encrypted column.
-    private void EncryptFindings()
-    {
-        foreach (var entry in ChangeTracker.Entries<Finding>())
-        {
-            if (entry.State is EntityState.Added or EntityState.Modified or EntityState.Unchanged)
-            {
-                FindingEncryption.EncryptForSave(entry.Entity, entry.State, encryption);
-            }
-        }
     }
 
     private void AddAuditEntries()
@@ -129,7 +104,7 @@ public sealed class AppDbContext(
 
     private static AuditChange Describe(PropertyEntry property)
     {
-        var field = AuditFieldNames.GetValueOrDefault(property.Metadata.Name, property.Metadata.Name);
+        var field = property.Metadata.Name;
         return LoggedValues.Contains(field)
             ? new AuditChange { Field = field, From = Format(property.OriginalValue), To = Format(property.CurrentValue) }
             : new AuditChange { Field = field };
