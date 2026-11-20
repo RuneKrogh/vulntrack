@@ -16,7 +16,7 @@ RUN dotnet restore backend/VulnTrack.Api/VulnTrack.Api.csproj
 COPY backend/VulnTrack.Api/ backend/VulnTrack.Api/
 RUN dotnet publish backend/VulnTrack.Api/VulnTrack.Api.csproj -c Release --no-restore -o /app
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+FROM mcr.microsoft.com/dotnet/aspnet:11.0
 WORKDIR /app
 COPY --from=backend /app ./
 COPY --from=frontend /src/dist ./wwwroot
