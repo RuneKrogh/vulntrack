@@ -23,4 +23,10 @@ public static class FindingAccess
     // Developers and auditors don't, so they never get it.
     public static bool CanSeeReporterEmail(this ClaimsPrincipal user) =>
         user.IsInRole(Roles.Analyst) || user.IsInRole(Roles.Pm);
+
+    // Developers may start and finish the work on their findings. Triage and accepting a risk are decisions
+    // for analysts and PMs, so a developer can't make a finding go away by accepting the risk instead of fixing it.
+    public static bool CanSetStatus(this ClaimsPrincipal user, FindingStatus status) =>
+        user.IsInRole(Roles.Analyst) || user.IsInRole(Roles.Pm) ||
+        (user.IsInRole(Roles.Developer) && status is FindingStatus.InProgress or FindingStatus.Remediated);
 }

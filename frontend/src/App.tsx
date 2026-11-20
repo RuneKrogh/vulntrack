@@ -5,10 +5,12 @@ import {
   getFindings,
   logout,
   noFilter,
+  statusLabels,
   type CurrentUser,
   type Dashboard,
   type Finding,
   type FindingFilter,
+  type FindingStatus,
 } from './api'
 import { DashboardSummary } from './dashboard'
 import { FilterBar, FindingDetails, FindingForm, FindingList } from './findings'
@@ -54,6 +56,12 @@ export default function App() {
   const canManage = user?.roles.some((role) => role === 'analyst' || role === 'pm') ?? false
   // Developers only see their own findings, so filtering by owner means nothing to them.
   const canFilterByOwner = canManage || (user?.roles.includes('auditor') ?? false)
+  // Same rule as the backend: developers may only start and finish work, triage and risk acceptance are for analysts and PMs.
+  const settableStatuses: FindingStatus[] = canManage
+    ? (Object.keys(statusLabels) as FindingStatus[])
+    : user?.roles.includes('developer')
+      ? ['InProgress', 'Remediated']
+      : []
 
   function replaceFinding(changed: Finding) {
     setFindings(findings.map((finding) => (finding.id === changed.id ? changed : finding)))
@@ -112,6 +120,7 @@ export default function App() {
           <FindingDetails
             finding={view.finding}
             canAssign={canManage}
+            settableStatuses={settableStatuses}
             onChanged={replaceFinding}
             onBack={() => setView({ name: 'list' })}
           />
