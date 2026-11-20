@@ -16,6 +16,7 @@ services:
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:?set OIDC_CLIENT_SECRET in .env}
     volumes:
       - ./keycloak/realm:/opt/keycloak/data/import:ro
+      - ./keycloak/themes/vulntrack:/opt/keycloak/themes/vulntrack:ro
     ports:
       - 127.0.0.1:8080:8080
     healthcheck:

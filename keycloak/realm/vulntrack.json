@@ -1,6 +1,7 @@
 {
   "realm": "vulntrack",
   "displayName": "VulnTrack",
+  "loginTheme": "vulntrack",
   "enabled": true,
   "bruteForceProtected": true,
   "failureFactor": 5,
