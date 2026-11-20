@@ -133,6 +133,17 @@ export async function submitReport(report: NewReport): Promise<string> {
   return reference
 }
 
+export async function updateStatus(id: string, status: FindingStatus): Promise<Finding> {
+  const response = await request(`/api/findings/${encodeURIComponent(id)}/status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  })
+  if (response.status === 403) throw new Error('You are not allowed to set this status.')
+  if (!response.ok) throw await failure(response, 'Changing the status')
+  return response.json()
+}
+
 export async function getAssignees(): Promise<Assignee[]> {
   const response = await request('/api/assignees')
   if (!response.ok) throw await failure(response, 'Loading developers')

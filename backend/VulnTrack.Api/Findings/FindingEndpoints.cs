@@ -16,6 +16,7 @@ public static class FindingEndpoints
         findings.MapGet("/{id:guid}", Get).RequireAuthorization(Policies.ViewFindings);
         findings.MapPost("/", Create).RequireAuthorization(Policies.CreateFindings);
         findings.MapPut("/{id:guid}/assignment", Assign).RequireAuthorization(Policies.AssignFindings);
+        findings.MapPut("/{id:guid}/status", UpdateStatus).RequireAuthorization(Policies.UpdateStatus);
 
         app.MapGet("/api/assignees", (IUserDirectory users, CancellationToken cancellationToken) => users.GetDevelopersAsync(cancellationToken))
             .RequireAuthorization(Policies.ViewAssignees);
@@ -84,7 +85,28 @@ public static class FindingEndpoints
         await db.SaveChangesAsync(cancellationToken);
         return Results.Ok(FindingResponse.From(finding, user.CanSeeReporterEmail()));
     }
+
+    private static async Task<IResult> UpdateStatus(
+        Guid id,
+        UpdateStatusRequest request,
+        ClaimsPrincipal user,
+        AppDbContext db,
+        CancellationToken cancellationToken)
+    {
+        // Visibility is checked first, so a developer gets 404 for someone else's finding, not 403.
+        var finding = await db.Findings.VisibleTo(user).FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
+        if (finding is null) return Results.NotFound();
+
+        var status = request.Status!.Value;
+        if (!user.CanSetStatus(status)) return Results.Forbid();
+
+        finding.Status = status;
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.Ok(FindingResponse.From(finding, user.CanSeeReporterEmail()));
+    }
 }
+
+public sealed record UpdateStatusRequest([property: Required, EnumDataType(typeof(FindingStatus))] FindingStatus? Status);
 
 public sealed record AssignFindingRequest(
     [property: Required, MaxLength(Finding.AssigneeIdMaxLength)] string? AssigneeId,

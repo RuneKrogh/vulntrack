@@ -6,6 +6,7 @@ import {
   limits,
   severities,
   statusLabels,
+  updateStatus,
   type Assignee,
   type Finding,
   type FindingFilter,
@@ -128,11 +129,12 @@ export function FindingList({ findings, filtered, onOpen }: FindingListProps) {
 type FindingDetailsProps = {
   finding: Finding
   canAssign: boolean
+  settableStatuses: FindingStatus[]
   onChanged: (finding: Finding) => void
   onBack: () => void
 }
 
-export function FindingDetails({ finding, canAssign, onChanged, onBack }: FindingDetailsProps) {
+export function FindingDetails({ finding, canAssign, settableStatuses, onChanged, onBack }: FindingDetailsProps) {
   return (
     <article>
       <button onClick={onBack}>Back</button>
@@ -159,8 +161,58 @@ export function FindingDetails({ finding, canAssign, onChanged, onBack }: Findin
         )}
       </dl>
       <p className="description">{finding.description}</p>
+      {settableStatuses.length > 0 && (
+        <StatusForm finding={finding} settableStatuses={settableStatuses} onChanged={onChanged} />
+      )}
       {canAssign && <AssignForm finding={finding} onAssigned={onChanged} />}
     </article>
+  )
+}
+
+type StatusFormProps = {
+  finding: Finding
+  settableStatuses: FindingStatus[]
+  onChanged: (finding: Finding) => void
+}
+
+function StatusForm({ finding, settableStatuses, onChanged }: StatusFormProps) {
+  const [status, setStatus] = useState(finding.status)
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setSaving(true)
+    setError(null)
+    try {
+      onChanged(await updateStatus(finding.id, status))
+    } catch (e) {
+      setError((e as Error).message)
+    }
+    setSaving(false)
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <h2>Status</h2>
+      <label>
+        Status
+        {/* Statuses the user may not set are shown but disabled, so the current one is still visible. */}
+        <select value={status} onChange={(e) => setStatus(e.target.value as FindingStatus)}>
+          {(Object.keys(statusLabels) as FindingStatus[]).map((option) => (
+            <option key={option} value={option} disabled={!settableStatuses.includes(option)}>
+              {statusLabels[option]}
+            </option>
+          ))}
+        </select>
+      </label>
+      {error && <p role="alert">{error}</p>}
+      <div className="actions">
+        <button type="submit" className="primary" disabled={saving || status === finding.status}>
+          Save status
+        </button>
+      </div>
+    </form>
   )
 }
 
