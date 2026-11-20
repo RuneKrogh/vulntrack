@@ -9,6 +9,7 @@ public sealed class SecurityMiddlewareTests(VulnTrackFactory factory) : IClassFi
     public async Task ApiPost_WithoutCsrfHeader_IsRejected()
     {
         var client = factory.CreateClientAs("alice", "analyst");
+        client.DefaultRequestHeaders.Remove(SecurityMiddleware.CsrfHeader);
 
         var response = await client.PostAsync("/api/auth/logout", null, TestContext.Current.CancellationToken);
 
@@ -19,10 +20,8 @@ public sealed class SecurityMiddlewareTests(VulnTrackFactory factory) : IClassFi
     public async Task ApiPost_WithCsrfHeader_IsNotRejectedByCsrfCheck()
     {
         var client = factory.CreateClientAs("alice", "analyst");
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/does-not-exist");
-        request.Headers.Add(SecurityMiddleware.CsrfHeader, "1");
 
-        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+        var response = await client.PostAsync("/api/does-not-exist", null, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

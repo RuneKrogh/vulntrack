@@ -1,0 +1,32 @@
+using Microsoft.AspNetCore.Authorization;
+
+namespace VulnTrack.Api.Auth;
+
+// Client roles from Keycloak.
+public static class Roles
+{
+    public const string Analyst = "analyst";
+    public const string Developer = "developer";
+    public const string Pm = "pm";
+    public const string Auditor = "auditor";
+}
+
+public static class Policies
+{
+    public const string ViewFindings = nameof(ViewFindings);
+    public const string CreateFindings = nameof(CreateFindings);
+}
+
+public static class AuthorizationSetup
+{
+    // Who may do what, following the role table in the spec. Endpoints only refer to these policies.
+    public static IServiceCollection AddRolePolicies(this IServiceCollection services)
+    {
+        services.AddAuthorizationBuilder()
+            // Every endpoint requires a signed-in user unless it explicitly allows anonymous access.
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+            .AddPolicy(Policies.ViewFindings, policy => policy.RequireRole(Roles.Analyst, Roles.Developer, Roles.Pm, Roles.Auditor))
+            .AddPolicy(Policies.CreateFindings, policy => policy.RequireRole(Roles.Analyst, Roles.Pm));
+        return services;
+    }
+}

@@ -6,12 +6,15 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Testcontainers.PostgreSql;
 using VulnTrack.Api.Data;
+using VulnTrack.Api.Security;
 
 namespace VulnTrack.Api.Tests;
 
 // Runs the real app, but swaps the OIDC/cookie login for a test scheme that reads the user from headers.
-public sealed class VulnTrackFactory : WebApplicationFactory<Program>
+// It has no database. Tests that need one use PostgresFactory.
+public class VulnTrackFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -19,9 +22,6 @@ public sealed class VulnTrackFactory : WebApplicationFactory<Program>
         builder.UseSetting("Oidc:RequireHttpsMetadata", "false");
         builder.ConfigureServices(services =>
         {
-            // These tests don't use the database, so don't try to migrate one at startup.
-            services.Remove(services.Single(s => s.ImplementationType == typeof(DatabaseMigrator)));
-
             services.AddAuthentication()
                 .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
             services.PostConfigure<AuthenticationOptions>(options =>
@@ -30,14 +30,38 @@ public sealed class VulnTrackFactory : WebApplicationFactory<Program>
                 options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
             });
         });
+        ConfigureDatabase(builder);
     }
 
+    protected virtual void ConfigureDatabase(IWebHostBuilder builder) =>
+        builder.ConfigureServices(services =>
+            services.Remove(services.Single(s => s.ImplementationType == typeof(DatabaseMigrator))));
+
+    // A client for a signed-in user. It sends the CSRF header like the frontend does.
     public HttpClient CreateClientAs(string username, params string[] roles)
     {
         var client = CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         client.DefaultRequestHeaders.Add(TestAuthHandler.UserHeader, username);
         client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, string.Join(',', roles));
+        client.DefaultRequestHeaders.Add(SecurityMiddleware.CsrfHeader, "1");
         return client;
+    }
+}
+
+// Same as VulnTrackFactory, but with a real Postgres in a container. Needs Docker.
+public sealed class PostgresFactory : VulnTrackFactory, IAsyncLifetime
+{
+    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:18-alpine").Build();
+
+    public async ValueTask InitializeAsync() => await _postgres.StartAsync();
+
+    protected override void ConfigureDatabase(IWebHostBuilder builder) =>
+        builder.UseSetting("ConnectionStrings:Default", _postgres.GetConnectionString());
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await _postgres.DisposeAsync();
     }
 }
 
