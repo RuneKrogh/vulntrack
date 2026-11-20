@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+
+      # Restore also runs NuGet audit, which fails on packages with known vulnerabilities.
+      - name: Build backend
+        run: dotnet build backend/VulnTrack.slnx
+
+      - name: Check backend formatting
+        run: dotnet format backend/VulnTrack.slnx --verify-no-changes --no-restore
+
+      - name: Test backend
+        run: dotnet test --solution backend/VulnTrack.slnx --no-build
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --ignore-scripts
+
+      - name: Audit frontend dependencies
+        working-directory: frontend
+        run: npm audit
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Build container image
+        run: docker build .

@@ -1,0 +1,115 @@
+{
+  "realm": "vulntrack",
+  "displayName": "VulnTrack",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "loginWithEmailAllowed": false,
+  "duplicateEmailsAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "maxDeltaTimeSeconds": 43200,
+  "passwordPolicy": "length(12) and notUsername and notEmail",
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "accessTokenLifespan": 300,
+  "roles": {
+    "client": {
+      "vulntrack": [
+        { "name": "analyst", "description": "Views, creates, updates and assigns findings" },
+        { "name": "developer", "description": "Views findings and updates their status and details" },
+        { "name": "pm", "description": "Everything an analyst can do, plus SLA targets and user roles" },
+        { "name": "auditor", "description": "Read-only access to findings, reports and audit logs" }
+      ]
+    }
+  },
+  "clients": [
+    {
+      "clientId": "vulntrack",
+      "name": "VulnTrack",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${OIDC_CLIENT_SECRET}",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "consentRequired": false,
+      "fullScopeAllowed": false,
+      "rootUrl": "http://localhost:8000",
+      "redirectUris": ["http://localhost:8000/signin-oidc", "http://localhost:5173/signin-oidc"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:8000/signout-callback-oidc##http://localhost:5173/signout-callback-oidc"
+      },
+      "protocolMappers": [
+        {
+          "name": "client roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "usermodel.clientRoleMapping.clientId": "vulntrack",
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "analyst",
+      "email": "analyst@vulntrack.test",
+      "firstName": "Alex",
+      "lastName": "Analyst",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "analyst-test-pw", "temporary": false }],
+      "clientRoles": { "vulntrack": ["analyst"] }
+    },
+    {
+      "username": "developer",
+      "email": "developer@vulntrack.test",
+      "firstName": "Dana",
+      "lastName": "Developer",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "developer-test-pw", "temporary": false }],
+      "clientRoles": { "vulntrack": ["developer"] }
+    },
+    {
+      "username": "pm",
+      "email": "pm@vulntrack.test",
+      "firstName": "Parker",
+      "lastName": "Manager",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "pm-test-password", "temporary": false }],
+      "clientRoles": { "vulntrack": ["pm"] }
+    },
+    {
+      "username": "auditor",
+      "email": "auditor@vulntrack.test",
+      "firstName": "Avery",
+      "lastName": "Auditor",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "auditor-test-pw", "temporary": false }],
+      "clientRoles": { "vulntrack": ["auditor"] }
+    }
+  ]
+}
