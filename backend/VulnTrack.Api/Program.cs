@@ -7,8 +7,6 @@ using VulnTrack.Api.Security;
 using VulnTrack.Api.Users;
 
 var builder = WebApplication.CreateBuilder(args);
-// Docker secrets are files in /run/secrets. A file named Encryption__Key becomes the setting Encryption:Key.
-builder.Configuration.AddKeyPerFile("/run/secrets", optional: true);
 
 builder.Services.AddOidcAuthentication(builder.Configuration);
 builder.Services.AddRolePolicies();
